@@ -1,4 +1,19 @@
-# React Sticky
+# React Sticky Kit
+
+<p align="left">
+  <a href="https://www.npmjs.com/package/react-sticky-kit" target="_blank">
+    <img src="https://img.shields.io/npm/v/react-sticky-kit.svg?style=flat-square" alt="NPM Version" />
+  </a>
+  <a href="https://github.com/oe/react-sticky-kit" target="_blank">
+    <img src="https://img.shields.io/github/stars/oe/react-sticky-kit?style=flat-square" alt="GitHub Stars" />
+  </a>
+  <a href="https://github.com/oe/react-sticky-kit/actions" target="_blank">
+    <img src="https://github.com/oe/react-sticky-kit/actions/workflows/ci.yml/badge.svg" alt="Build Status" />
+  </a>
+  <a href="https://github.com/oe/react-sticky-kit/blob/main/LICENSE" target="_blank">
+    <img src="https://img.shields.io/github/license/oe/react-sticky-kit?style=flat-square" alt="License" />
+  </a>
+</p>
 
 A lightweight, flexible React sticky container and item component library. Easily create sticky headers, sections, and advanced sticky layouts with support for multiple modes and edge cases.
 
@@ -14,17 +29,17 @@ A lightweight, flexible React sticky container and item component library. Easil
 ## Installation
 
 ```bash
-npm install react-sticky
+npm install react-sticky-kit
 # or
-yarn add react-sticky
+yarn add react-sticky-kit
 # or
-pnpm add react-sticky
+pnpm add react-sticky-kit
 ```
 
 ## Usage
 
 ```tsx
-import { StickyContainer, StickyItem } from 'react-sticky';
+import { StickyContainer, StickyItem } from 'react-sticky-kit';
 
 export default function Example() {
   return (

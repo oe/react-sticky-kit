@@ -1,8 +1,17 @@
 {
-  "name": "react-sticky",
-  "private": true,
-  "version": "0.0.0",
+  "name": "react-sticky-kit",
+  "version": "0.1.0",
   "type": "module",
+  "description": "A lightweight, flexible React sticky container and item component library supporting multiple sticky modes, advanced layouts, and edge cases.",
+  "keywords": [
+    "react",
+    "sticky",
+    "react-sticky",
+    "sticky-container",
+    "sticky-item",
+    "z-index"
+  ],
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
