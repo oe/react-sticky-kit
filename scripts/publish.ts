@@ -3,6 +3,10 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
+import { fileURLToPath } from 'url';
+
+// ESM compatible __dirname
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function run(cmd: string, opts: Record<string, unknown> = {}) {
   try {
