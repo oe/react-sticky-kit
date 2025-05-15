@@ -11,6 +11,14 @@
     "sticky-item",
     "z-index"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oe/react-sticky-kit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/oe/react-sticky-kit/issues"
+  },
+  "homepage": "https://github.com/oe/react-sticky-kit#readme",
   "license": "MIT",
   "scripts": {
     "dev": "vite",
