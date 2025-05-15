@@ -62,12 +62,14 @@ export function StickyContainer(
   // Update the total height of sticky items
   const updateStickyItemsHeight = useCallback((height: number) => {
     const nextHeight = optionsRef.current.stickyItemsHeight + height;
+    optionsRef.current.stickyItemsHeight = nextHeight;
     // Trigger the callback asynchronously to avoid UI jank
     setTimeout(() => {
       optionsRef.current.onStickyItemsHeightChange?.(nextHeight);
     }, 0);
     return () => {
       const nextHeight = optionsRef.current.stickyItemsHeight - height;
+      optionsRef.current.stickyItemsHeight = nextHeight;
       // Trigger the callback asynchronously to avoid UI jank
       setTimeout(() => {
         optionsRef.current.onStickyItemsHeightChange?.(nextHeight);
