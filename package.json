@@ -1,6 +1,6 @@
 {
   "name": "react-sticky-kit",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "description": "A lightweight, flexible React sticky container and item component library supporting multiple sticky modes, advanced layouts, and edge cases.",
   "keywords": [
