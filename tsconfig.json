@@ -23,7 +23,9 @@
   "include": [
     "src",
     "demo",
-    "vite.config.ts"
+    "vite.config.ts",
+    "eslint.config.js",
+    "scripts"
   ],
   "exclude": ["node_modules", "dist"]
 }
