@@ -6,7 +6,7 @@ A lightweight, flexible React sticky container and item component library. Easil
 
 - 📦 Simple API: `<StickyContainer>` and `<StickyItem>`
 - 🧩 Supports `replace`, `stack`, and `none` sticky modes
-- 🏷️ Customizable offset, z-index, and sticky logic
+- 🏷️ Customizable offset, z-index (baseZIndex), and sticky logic
 - 🧪 Handles edge cases: empty sections, dynamic heights, zero-height headers, long headers, etc.
 - ⚡️ Written in TypeScript, fully typed
 - 🧪 Includes demo pages for real-world scenarios
@@ -28,7 +28,7 @@ import { StickyContainer, StickyItem } from 'react-sticky';
 
 export default function Example() {
   return (
-    <StickyContainer offsetTop={48} defaultMode="stack">
+    <StickyContainer offsetTop={48} defaultMode="stack" baseZIndex={300}>
       <StickyItem>
         <div>Sticky Header</div>
       </StickyItem>
@@ -45,11 +45,13 @@ export default function Example() {
 ## Props
 
 ### `<StickyContainer />`
-| Prop                      | Type                                 | Default   | Description                                  |
-|---------------------------|--------------------------------------|-----------|----------------------------------------------|
-| `offsetTop`               | `number`                             | `0`       | Offset from the top of the viewport          |
-| `defaultMode`             | `'replace' \| 'stack' \| 'none'`     | `'replace'`| Default sticky mode for all items            |
-| `onStickyItemsHeightChange` | `(height: number) => void`          |           | Callback when total sticky height changes     |
+| Prop                        | Type                                 | Default     | Description                                                                                 |
+|-----------------------------|--------------------------------------|-------------|---------------------------------------------------------------------------------------------|
+| `offsetTop`                 | `number`                             | `0`         | Offset from the top of the viewport                                                         |
+| `defaultMode`               | `'replace' \| 'stack' \| 'none'`     | `'replace'`| Default sticky mode for all items                                                           |
+| `baseZIndex`                | `number`                             | `200`       | Base z-index for sticky items. Should be greater than the number of sticky items.            |
+|                             |                                      |             | In `replace` mode, z-index = baseZIndex - index; in `stack` mode, z-index = baseZIndex + index. |
+| `onStickyItemsHeightChange` | `(height: number) => void`            |             | Callback when total sticky height changes                                                   |
 
 ### `<StickyItem />`
 | Prop    | Type                                 | Default | Description                                 |

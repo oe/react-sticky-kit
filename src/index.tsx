@@ -1,10 +1,12 @@
-import React, { useRef, useEffect, useCallback } from 'react';
-import { StickyGroupContext, type IStickyItemHandle } from './context';
+import React, { useRef, useEffect, useCallback, useMemo } from 'react';
+import { StickyGroupContext, type IStickyItemHandle, MIN_BASE_Z_INDEX } from './context';
 
 import './style.scss';
 
 export type { IStickyMode } from './context';
 export * from './sticky-item';
+
+const DEFAULT_BASE_Z_INDEX = 200;
 
 export interface IStickyContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
@@ -12,6 +14,15 @@ export interface IStickyContainerProps extends React.HTMLAttributes<HTMLDivEleme
    * The offset from the top of the viewport for sticky elements. Default is 0.
    */
   offsetTop?: number;
+  /**
+   * base z-index for sticky items. Default is 200. minimum z-index is 20.
+   * * - When using the `replace` mode, the z-index of a `StickyItem` is calculated as `baseZIndex` minus its index within the container.
+   * * - When using the `stack` mode, the z-index of a `StickyItem` is calculated as `baseZIndex` plus its index.
+   * * should be greater than number of sticky items in the container.
+   * * for performance reasons, when baseZIndex is changed, the component will not re-render.
+   * * use it when you need nest StickyContainer or need to change z-index of sticky items.
+   */
+  baseZIndex?: number;
   /**
    * Default sticky mode for the group. 'none' disables sticky behavior.
    */
@@ -24,11 +35,10 @@ export interface IStickyContainerProps extends React.HTMLAttributes<HTMLDivEleme
 }
 
 export function StickyContainer(
-  { children, offsetTop = 0, onStickyItemsHeightChange,
+  { children, offsetTop = 0, baseZIndex, onStickyItemsHeightChange,
     defaultMode = 'replace', ...rest }: IStickyContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef<IStickyItemHandle[]>([]);
-  // const [stickyItemsHeight, setStickyItemsHeight] = useState(0);
   
   // Use ref to cache config to avoid unnecessary hook dependencies
   const optionsRef = useRef({
@@ -107,10 +117,13 @@ export function StickyContainer(
     }
   }, [scheduleUpdate]);
 
+  const fixedBaseZIndex = useMemo(() => fixBaseZIndex(baseZIndex), [baseZIndex]);
+
   return (
     <StickyGroupContext.Provider 
       value={{
         register,
+        baseZIndex: fixedBaseZIndex,
         updateStickyItemsHeight,
         fixedOffsetTop: offsetTop, 
         mode: defaultMode, 
@@ -126,6 +139,11 @@ export function StickyContainer(
       </div>
     </StickyGroupContext.Provider>
   );
+}
+
+function fixBaseZIndex(baseZIndex?: number) {
+  if (typeof baseZIndex === 'undefined') return DEFAULT_BASE_Z_INDEX;
+  return Math.max(Number(baseZIndex) || 0, MIN_BASE_Z_INDEX); 
 }
 
 /**

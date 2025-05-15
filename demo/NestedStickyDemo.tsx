@@ -16,7 +16,7 @@ export default function NestedStickyDemo() {
           </div>
         </StickyItem>
         <div style={{ padding: 16 }}>
-          <StickyContainer offsetTop={outerStickyHeight + OUTER_OFFSET} defaultMode="stack">
+          <StickyContainer baseZIndex={100} offsetTop={outerStickyHeight + OUTER_OFFSET} defaultMode="replace">
             <StickyItem>
               <div style={{ background: '#ffe0e0', padding: '8px 16px', fontWeight: 'bold', borderBottom: '1px solid #dde' }}>
                 Inner Header A

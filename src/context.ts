@@ -1,5 +1,7 @@
 import { createContext, useContext } from 'react';
 
+export const MIN_BASE_Z_INDEX = 20;
+
 /**
  * Sticky mode:
  * - 'replace': This item replaces the previous sticky item; its height is set to the previous sticky item's height.
@@ -32,6 +34,10 @@ export interface IStickyItemHandle {
 }
 
 export interface IStickyGroupContextValue {
+  /**
+   * base z-index for sticky items.
+   */
+  baseZIndex: number;
   /**
    * Register a sticky item.
    */

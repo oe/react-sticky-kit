@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { type IStickyMode, type IStickyItemHandle, useStickyContext } from './context';
+import { type IStickyMode, type IStickyItemHandle, useStickyContext, MIN_BASE_Z_INDEX } from './context';
 
 export interface IStickyItemProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
@@ -8,8 +8,6 @@ export interface IStickyItemProps extends React.HTMLAttributes<HTMLDivElement> {
    */
   mode?: IStickyMode
 }
-
-const BASE_Z_INDEX = 200;
 
 export function StickyItem({ mode, children, className, ...rest}: IStickyItemProps) {
   const context = useStickyContext();
@@ -21,8 +19,9 @@ export function StickyItem({ mode, children, className, ...rest}: IStickyItemPro
   const contextInfoRef = useRef({
     fixedOffsetTop: context?.fixedOffsetTop || 0,
     isSticky,
+    baseZIndex: context?.baseZIndex || MIN_BASE_Z_INDEX,
   });
-
+  contextInfoRef.current.baseZIndex = context?.baseZIndex || MIN_BASE_Z_INDEX;
   contextInfoRef.current.fixedOffsetTop = context?.fixedOffsetTop || 0;
   contextInfoRef.current.isSticky = isSticky;
 
@@ -67,7 +66,7 @@ export function StickyItem({ mode, children, className, ...rest}: IStickyItemPro
         $content.style.top = `${newOffsetTop}px`;
         $content.style.width = `${$contentWrapper.offsetWidth}px`;
         // Lower z-index in 'replace' mode, raise in 'stack' mode to ensure stacking order
-        $content.style.zIndex = `${BASE_Z_INDEX + (effectedMode === 'replace' ? -index : index)}`;
+        $content.style.zIndex = `${contextInfoRef.current.baseZIndex + (effectedMode === 'replace' ? -index : index)}`;
         $contentWrapper.style.height = `${contentHeight}px`;
         // In 'replace' mode, do not occupy offsetTop height
         return effectedMode === 'replace' ? 0 : contentHeight;
