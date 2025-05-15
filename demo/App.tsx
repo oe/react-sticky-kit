@@ -1,43 +1,42 @@
-import { StickyContainer, StickyItem } from '../src'
-import './App.scss'
+import { useState, useEffect } from 'react';
+import ContactListDemo from './ContactListDemo';
+import MixedModeDemo from './MixedModeDemo';
 
-function App() {
+const pages = [
+  { name: 'iPhone Contacts Demo', component: <ContactListDemo /> },
+  { name: 'Mixed Sticky Modes Demo', component: <MixedModeDemo /> },
+];
 
-  return (
-    <>
-      <header>
-        <div>React Sticky Demo</div>
-
-        <a href="https://github.com/oe">Github</a>
-      </header>
-      <main>
-        <StickyContainer offsetTop={90} defaultMode="replace">
-          <div style={{ height: '400px' }}>
-            <h1>Sticky Header</h1>
-          </div>
-          <StickyItem>
-            <div className="sticky-item" style={{ height: '30px', background: 'lightblue' }}>
-              <span>Sticky Item 1</span>
-            </div>
-          </StickyItem>
-          <div style={{ height: '300px', background: 'lightgray' }}>
-            spacer
-          </div>
-          <StickyItem>
-            <div className="sticky-item" style={{ height: '30px', background: 'lightgreen' }}>
-              <span>Sticky Item 2</span>
-            </div>
-          </StickyItem>
-          <div className="content">
-            <p>Content goes here...</p>
-          </div>
-        </StickyContainer>
-      </main>
-      <footer>
-        <p>Footer content</p>
-      </footer>
-    </>
-  )
+// Sync pageIdx with location.hash
+function getIdxFromHash(pagesLen: number) {
+  const idx = Number(window.location.hash.replace('#', ''));
+  return Number.isFinite(idx) && idx >= 0 && idx < pagesLen ? idx : 0;
 }
 
-export default App
+export default function App() {
+  const [pageIdx, setPageIdx] = useState(() => getIdxFromHash(pages.length));
+
+  useEffect(() => {
+    const onHashChange = () => setPageIdx(getIdxFromHash(pages.length));
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  const handleNav = (i: number) => {
+    window.location.hash = String(i);
+    setPageIdx(i);
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#f7f7f7' }}>
+      <nav style={{ display: 'flex', gap: 16, padding: 16, background: '#fff', borderBottom: '1px solid #eee' }}>
+        {pages.map((p, i) => (
+          <button key={p.name} onClick={() => handleNav(i)} style={{ fontWeight: pageIdx === i ? 'bold' : undefined }}>
+            {p.name}
+          </button>
+        ))}
+      </nav>
+      <div style={{ padding: 16 }}>{pages[pageIdx].component}</div>
+    </div>
+  );
+}

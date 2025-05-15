@@ -20,6 +20,10 @@
     },
     "types": ["node"]
   },
-  "include": ["src", "demo"],
+  "include": [
+    "src",
+    "demo",
+    "vite.config.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }

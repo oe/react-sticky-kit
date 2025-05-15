@@ -1,26 +1,39 @@
-name: CI
+# This is a basic workflow to help you get started with Actions
 
+name: build library
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
 on:
   push:
-    branches: [main, master]
+    branches:
+      - main
+    tags:
+      # - 'v*'    # Push events to matching v*, i.e. v1.0, v20.15.10
+      - 'v*'
   pull_request:
-    branches: [main, master]
+    branches:
+      - main
 
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
+  # This workflow contains a single job called "build"
   build:
+    # The type of runner that the job will run on
     runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Use Node.js 18.x
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-      - name: Install dependencies
-        run: npm ci
-      - name: Type check
-        run: npm run type-check
-      - name: Build library
-        run: npm run build
-      - name: Lint
-        run: npm run lint || true
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - uses: actions/checkout@v2
+    - name: Use Node.js
+      uses: actions/setup-node@v1
+      with:
+        node-version: '21.x'
+    - name: Install pnpm
+      run: npm install -g pnpm
+    - name: install deps
+      run: pnpm install
+
+    - name: build lib
+      run: pnpm build

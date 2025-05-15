@@ -51,8 +51,8 @@ export default defineConfig(({ command }) => {
           formats: ['es', 'umd'],
         },
         rollupOptions: {
-          // Externalize peer dependencies
-          external: ['react', 'react-dom'],
+          // Externalize peer dependencies and JSX runtime
+          external: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
           output: {
             globals: {
               react: 'React',

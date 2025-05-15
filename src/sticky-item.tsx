@@ -46,7 +46,9 @@ export function StickyItem({ mode, children, className, ...rest}: IStickyItemPro
         return 0;
       }
       if (currentOffsetTop <= offsetTop) {
-        const contentHeight = $content.offsetHeight;
+        // .offsetHeight/.clientHeight could be rounded make it inaccurate
+        // Use getBoundingClientRect().height to get accurate height
+        const contentHeight = $content.getBoundingClientRect().height;
         setIsSticky(true);
         let newOffsetTop = offsetTop;
         // In 'replace' mode, adjust height if next item overlaps current item
@@ -61,11 +63,11 @@ export function StickyItem({ mode, children, className, ...rest}: IStickyItemPro
             }
           }
         }
-        $content.style.setProperty('top', `${newOffsetTop}px`);
-        $content.style.setProperty('width', `${$contentWrapper.offsetWidth}px`);
+        $content.style.top = `${newOffsetTop}px`;
+        $content.style.width = `${$contentWrapper.offsetWidth}px`;
         // Lower z-index in 'replace' mode, raise in 'stack' mode to ensure stacking order
-        $content.style.setProperty('z-index', `${BASE_Z_INDEX + (effectedMode === 'replace' ? -index : index)}`);
-        $contentWrapper.style.setProperty('height', `${contentHeight}px`);
+        $content.style.zIndex = `${BASE_Z_INDEX + (effectedMode === 'replace' ? -index : index)}`;
+        $contentWrapper.style.height = `${contentHeight}px`;
         // In 'replace' mode, do not occupy offsetTop height
         return effectedMode === 'replace' ? 0 : contentHeight;
       } else {
@@ -91,10 +93,8 @@ export function StickyItem({ mode, children, className, ...rest}: IStickyItemPro
     const removeHeight = updateStickyItemsHeight($content.offsetHeight);
   
     return () => {
-      $content.style.removeProperty('top');
-      $content.style.removeProperty('z-index');
-      $item.style.removeProperty('height');
-      $content.style.removeProperty('width');
+      unsetStyle($item, ['height']);
+      unsetStyle($content, ['top', 'z-index', 'width']);
       removeHeight();
     }
   }, [isSticky, context?.updateStickyItemsHeight])
@@ -107,4 +107,10 @@ export function StickyItem({ mode, children, className, ...rest}: IStickyItemPro
       </div>
     </div>
   )
+}
+
+function unsetStyle(el: HTMLElement, styles: string[]) {
+  styles.forEach(style => {
+    el.style.removeProperty(style);
+  });
 }

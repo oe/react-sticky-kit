@@ -1,47 +1,53 @@
 import { createContext, useContext } from 'react';
 
+/**
+ * Sticky mode:
+ * - 'replace': This item replaces the previous sticky item; its height is set to the previous sticky item's height.
+ * - 'stack': This item stacks on top of previous sticky items; its height is set to 0.
+ * - 'none': This item is not sticky.
+ */
 export type IStickyMode = 'replace' | 'stack' | 'none';
 
 export interface IStickyItemHandle {
   /**
-   * 包裹sticky 内容容器的 DOM 元素
+   * The DOM element wrapping the sticky content.
    */
   el: HTMLElement;
   /**
-   * 元素注册的更新函数
-   * @param canSticky 容器是否与顶部交叉, sticky 元素是否可以 sticky, 近当该值 为 true 时, sticky 元素才可以 sticky
-   * @param currentOffsetTop 当前元素容器距离视口顶部的距离
-   * @param offsetTop 当前元素之前的sticky 元素的偏移量
-   * @param nextOffsetTop 下一个元素的 sticky 元素容器距离顶部的距离, undefined 表示没有下一个元素
-   * @param index sticky 元素在容器中的索引(顺序), 可以用于控制元素的 z-index
-   * @returns 返回当前元素的高度, 若果该元素不需要 sticky, 则返回 0
+   * Update function for the sticky item.
+   * @param canSticky Whether the container intersects the top and the item can be sticky.
+   * @param currentOffsetTop The distance from the item's container to the top of the viewport.
+   * @param offsetTop The offset of previous sticky items.
+   * @param nextOffsetTop The offsetTop of the next sticky item container, or undefined if none.
+   * @param index The index of the sticky item in the container, used for z-index control.
+   * @returns The height of the current item, or 0 if not sticky.
    */
-  update: (canSticky: boolean, currentOffsetTop: number, offsetTop: number, nextOffsetTop: number | undefined, index: number) => number;
+  update: (
+    canSticky: boolean,
+    currentOffsetTop: number,
+    offsetTop: number,
+    nextOffsetTop: number | undefined,
+    index: number
+  ) => number;
 }
 
 export interface IStickyGroupContextValue {
   /**
-   * 注册需要 sticky 的元素
+   * Register a sticky item.
    */
   register: (handle: IStickyItemHandle) => () => void;
-
   /**
-   * 更新 sticky 元素的高度
-   * @param height 当前新增sticky的元素的高度
-   * @returns 清理函数, 元素卸载时调用, 用于清理高度
+   * Update the total height of sticky items.
+   * @param height Height of the newly added sticky item.
+   * @returns Cleanup function to call on unmount for height cleanup.
    */
   updateStickyItemsHeight: (height: number) => () => void;
   /**
-   * 整个 StickyGroup 在sticky时固定的偏移量
+   * Fixed offset from the top for the entire StickyGroup.
    */
   fixedOffsetTop: number;
   /**
-   * 整个 StickyGroup 的当前正在 sticky 元素的高度
-   */
-  stickyItemsHeight: number;
-
-  /**
-   * 整个 StickyGroup 的默认 sticky 模式
+   * Default sticky mode for the group.
    */
   mode?: IStickyMode;
 }
