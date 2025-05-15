@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
 import ContactListDemo from './ContactListDemo';
 import MixedModeDemo from './MixedModeDemo';
+import NestedStickyDemo from './NestedStickyDemo';
+import DynamicStickyDemo from './DynamicStickyDemo';
 
 const pages = [
   { name: 'iPhone Contacts Demo', component: <ContactListDemo /> },
   { name: 'Mixed Sticky Modes Demo', component: <MixedModeDemo /> },
+  { name: 'Nested Sticky Containers', component: <NestedStickyDemo /> },
+  { name: 'Dynamic Sticky Items', component: <DynamicStickyDemo /> },
 ];
 
 // Sync pageIdx with location.hash

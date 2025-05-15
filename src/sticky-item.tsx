@@ -42,14 +42,14 @@ export function StickyItem({ mode, children, className, ...rest}: IStickyItemPro
     // Register sticky item and provide update logic
     const update: IStickyItemHandle['update'] = (canSticky, currentOffsetTop, offsetTop, nextOffsetTop, index) => {
       if (!canSticky) {
-        setIsSticky(false);
+        // only update offsetTop if canSticky is true, to avoid unnecessary re-renders
+        if(contextInfoRef.current.isSticky) setIsSticky(false);
         return 0;
       }
       if (currentOffsetTop <= offsetTop) {
         // .offsetHeight/.clientHeight could be rounded make it inaccurate
         // Use getBoundingClientRect().height to get accurate height
         const contentHeight = $content.getBoundingClientRect().height;
-        setIsSticky(true);
         let newOffsetTop = offsetTop;
         // In 'replace' mode, adjust height if next item overlaps current item
         if (effectedMode === 'replace' && typeof nextOffsetTop !== 'undefined') {
@@ -58,11 +58,12 @@ export function StickyItem({ mode, children, className, ...rest}: IStickyItemPro
             newOffsetTop = offsetTop + diff;
             // If offset exceeds content height, disable sticky
             if (diff + contentHeight < 0) {
-              setIsSticky(false);
+              if(contextInfoRef.current.isSticky) setIsSticky(false);
               return 0;
             }
           }
         }
+        if(!contextInfoRef.current.isSticky) setIsSticky(true);
         $content.style.top = `${newOffsetTop}px`;
         $content.style.width = `${$contentWrapper.offsetWidth}px`;
         // Lower z-index in 'replace' mode, raise in 'stack' mode to ensure stacking order
@@ -90,7 +91,7 @@ export function StickyItem({ mode, children, className, ...rest}: IStickyItemPro
     const $content = contentRef.current;
     const updateStickyItemsHeight = context?.updateStickyItemsHeight;
     if (!isSticky || !$item || !$content || !updateStickyItemsHeight) return;
-    const removeHeight = updateStickyItemsHeight($content.offsetHeight);
+    const removeHeight = updateStickyItemsHeight($content.getBoundingClientRect().height);
   
     return () => {
       unsetStyle($item, ['height']);
