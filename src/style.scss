@@ -1,0 +1,23 @@
+
+// 自动产生命名空间, 用于生成类名, 使用 $ns-sticky 作为类名
+// * 例如: $ns: 'mk', componentName: 'Hero2', 则类名为 mk-hero2
+// * $prefix 也会自动更新: $ns + '-' + 'sticky'
+// * 例如: $ns: 'mk', componentName: 'Hero2', 则 $prefix 为 mk-hero2
+.oe-sticky {
+  &-container {
+    position: relative;
+  }
+
+  &-item {
+    position: relative;
+  }
+
+  &-content {
+    will-change: top, position;
+
+    &.is-sticky {
+      position: fixed;
+    }
+  }
+}
+
