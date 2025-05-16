@@ -90,7 +90,11 @@ pnpm install
 pnpm dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) and switch between demo pages to explore all features and edge cases.
+Open [http://localhost:5173](http://localhost:5173) and switch between demo pages to explore all features and edge cases:
+* [iOS Contact](http://localhost:5173/#ios-contact) a dead simple iOS contact clone
+* [Mixed mode](http://localhost:5173/#mixed-mode) mix replace/stack/none mode
+* [Nested](http://localhost:5173/#dynamic-height) nest sticky containers
+* [Dynamic sticky items](http://localhost:5173/#nested) dynamic sticky items(add/remove)
 
 ## License
 
