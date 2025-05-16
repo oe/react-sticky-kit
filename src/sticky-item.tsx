@@ -62,12 +62,13 @@ export function StickyItem({ mode, children, className, ...rest}: IStickyItemPro
             }
           }
         }
+        // set wrapper height before setting content offset to avoid scroll glitch
+        $contentWrapper.style.height = `${contentHeight}px`;
         if(!contextInfoRef.current.isSticky) setIsSticky(true);
         $content.style.top = `${newOffsetTop}px`;
         $content.style.width = `${$contentWrapper.offsetWidth}px`;
         // Lower z-index in 'replace' mode, raise in 'stack' mode to ensure stacking order
         $content.style.zIndex = `${contextInfoRef.current.baseZIndex + (effectedMode === 'replace' ? -index : index)}`;
-        $contentWrapper.style.height = `${contentHeight}px`;
         // In 'replace' mode, do not occupy offsetTop height
         return effectedMode === 'replace' ? 0 : contentHeight;
       } else {
