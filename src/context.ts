@@ -2,6 +2,7 @@ import { createContext, useContext } from 'react';
 
 export const MIN_BASE_Z_INDEX = 20;
 
+export const DEFAULT_BASE_Z_INDEX = 200;
 /**
  * Sticky mode:
  * - 'replace': This item replaces the previous sticky item; its height is set to the previous sticky item's height.

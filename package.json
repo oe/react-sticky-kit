@@ -39,7 +39,9 @@
       "import": "./dist/react-sticky.es.js",
       "require": "./dist/react-sticky.umd.js",
       "types": "./dist/index.d.ts"
-    }
+    },
+    "./style": "./dist/style.css",
+    "./dist/style.css": "./dist/style.css"
   },
   "peerDependencies": {
     "react": ">=17.0.0",

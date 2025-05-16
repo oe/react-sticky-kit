@@ -1,12 +1,10 @@
 import React, { useRef, useEffect, useCallback, useMemo } from 'react';
-import { StickyGroupContext, type IStickyItemHandle, MIN_BASE_Z_INDEX } from './context';
+import { StickyGroupContext, type IStickyItemHandle, MIN_BASE_Z_INDEX, DEFAULT_BASE_Z_INDEX } from './context';
 
 import './style.scss';
 
 export type { IStickyMode } from './context';
 export * from './sticky-item';
-
-const DEFAULT_BASE_Z_INDEX = 200;
 
 export interface IStickyContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
@@ -133,7 +131,6 @@ export function StickyContainer(
         {...rest} 
         ref={containerRef} 
         className="oe-sticky-container"
-        data-mode={defaultMode} 
       >
         {children}
       </div>
