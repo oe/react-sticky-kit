@@ -40,7 +40,9 @@ pnpm add react-sticky-kit
 
 ```tsx
 import { StickyContainer, StickyItem } from 'react-sticky-kit';
-import 'react-sticky-kit/dist/style.css'; // Import styles for sticky components
+// !! Import styles for sticky components
+import 'react-sticky-kit/dist/style.css';
+// or `import 'react-sticky-kit/style';` for more clean style path(require modern bundler tools)
 
 export default function Example() {
   return (
