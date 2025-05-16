@@ -74,7 +74,7 @@ export default function Example() {
 ### `<StickyItem />`
 | Prop    | Type                                 | Default | Description                                 |
 |---------|--------------------------------------|---------|---------------------------------------------|
-| `mode`  | `'replace' \| 'stack' \| 'none'`     |         | Sticky mode for this item (overrides group) |
+| `mode`  | `'replace' \| 'stack' \| 'none'`     |         | Sticky mode for this item (overrides StickyContainer) |
 
 ## Sticky Modes
 - **replace**: Only one sticky item is visible at a time, replacing the previous.

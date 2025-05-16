@@ -4,7 +4,7 @@ import { type IStickyMode, type IStickyItemHandle, useStickyContext, MIN_BASE_Z_
 export interface IStickyItemProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   /**
-   * Sticky mode for this item. Defaults to the group's mode if not specified.
+   * Sticky mode for this item. Defaults to the StickyContainer's mode if not specified.
    */
   mode?: IStickyMode
 }
