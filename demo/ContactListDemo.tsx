@@ -26,6 +26,9 @@ export default function ContactListDemo() {
           </div>
         ))}
       </StickyContainer>
+      <div style={{ padding: 16, background: 'lightgreen', height: 1000, borderTop: '1px solid #eee', textAlign: 'center' }}>
+        Scroll down to see the sticky header scrolling out of screen!
+      </div>
     </div>
   );
 }

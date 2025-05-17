@@ -56,8 +56,8 @@ export default function MixedModeDemo() {
   const [offsetTop, setOffsetTop] = useState(0);
   const [dynamicMode, setDynamicMode] = useState<IStickyMode>('stack');
   return (
-    <div style={{ maxWidth: 600, margin: '0 auto', background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #0001', overflow: 'hidden', minHeight: 900 }}>
-      <h2 style={{ textAlign: 'center', margin: 0, padding: 16, background: '#f5f5f5' }}>Mixed Sticky Modes</h2>
+    <div style={{ maxWidth: 600, margin: '0 auto', background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #0001', minHeight: 900 }}>
+      <h2 style={{ textAlign: 'center', zIndex: 999, position: 'sticky', top: 0, height: 60,  margin: 0, padding: 16, background: '#f5f5f5' }}>Mixed Sticky Modes</h2>
       <div style={{ padding: 8, background: '#f9f9f9', borderBottom: '1px solid #eee' }}>
         <label>Sticky OffsetTop: <input type="number" value={offsetTop} onChange={e => setOffsetTop(Number(e.target.value))} style={{ width: 60 }} /> px</label>
         <span style={{ marginLeft: 24 }}>
@@ -69,7 +69,7 @@ export default function MixedModeDemo() {
           </select>
         </span>
       </div>
-      <StickyContainer offsetTop={offsetTop} defaultMode="stack">
+      <StickyContainer offsetTop={offsetTop || 92} defaultMode="stack">
         {sections.map(section => (
           <div key={section.title}>
             <StickyItem mode={section.dynamic ? dynamicMode : (section.mode as IStickyMode)}>

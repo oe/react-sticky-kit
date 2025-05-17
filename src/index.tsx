@@ -44,6 +44,7 @@ export function StickyContainer(
     defaultMode,
     stickyItemsHeight: 0,
     onStickyItemsHeightChange,
+    lastCanSticky: false,
   });
   optionsRef.current.onStickyItemsHeightChange = onStickyItemsHeightChange;
 
@@ -56,7 +57,24 @@ export function StickyContainer(
     const stickyItemsHeight = options.stickyItemsHeight;
     // Determine if the container intersects the top of the viewport
     const canSticky = !(rect.top > fixedOffsetTop || rect.bottom < fixedOffsetTop);
+    // stop loop if container is not stickyable and lastCanSticky is false
+    if (!canSticky) {
+      if (optionsRef.current.lastCanSticky !== canSticky) {
+        $container.classList.toggle('can-sticky', false);
+        itemsRef.current.forEach(item => item.update(false, 0, 0, 0, 0));
+        optionsRef.current.lastCanSticky = canSticky;
+      }
+      return;
+    }
+    optionsRef.current.lastCanSticky = canSticky;
+
+    // enable sticky when some items should be sticky
+    if (stickyItemsHeight > 0) {
+      $container.classList.toggle('can-sticky', true);
+    }
+
     let accHeight = fixedOffsetTop;
+
     // Calculate correction offset if container's bottom is not enough to display all sticky items
     let correctionOffset = rect.bottom - (fixedOffsetTop + stickyItemsHeight);
     // If correctionOffset > 0, there is enough space, no correction needed
@@ -89,7 +107,9 @@ export function StickyContainer(
   useEffect(() => {
     optionsRef.current.fixedOffsetTop = offsetTop;
     optionsRef.current.defaultMode = defaultMode;
-    scheduleUpdate();
+    setTimeout(() => {
+      scheduleUpdate();
+    }, 10);
   }, [offsetTop, defaultMode, scheduleUpdate]);
   
   // Register a sticky item and keep items sorted by their position in the viewport

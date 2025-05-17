@@ -6,6 +6,12 @@
 .oe-sticky {
   &-container {
     position: relative;
+
+    &.can-sticky {
+      .oe-sticky-content.is-sticky {
+        position: fixed;
+      }
+    }
   }
 
   &-item {
@@ -14,10 +20,8 @@
 
   &-content {
     will-change: top, position;
-
-    &.is-sticky {
-      position: fixed;
-    }
   }
+
+  
 }
 
