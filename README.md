@@ -4,14 +4,20 @@
   <a href="https://www.npmjs.com/package/react-sticky-kit" target="_blank">
     <img src="https://img.shields.io/npm/v/react-sticky-kit.svg?style=flat-square" alt="NPM Version" />
   </a>
+  <a href="https://img.shields.io/npm/dm/react-sticky-kit?style=flat-square" target="_blank">
+    <img src="https://img.shields.io/npm/dm/react-sticky-kit?style=flat-square" alt="NPM Downloads" />
+  </a>
   <a href="https://github.com/oe/react-sticky-kit" target="_blank">
     <img src="https://img.shields.io/github/stars/oe/react-sticky-kit?style=flat-square" alt="GitHub Stars" />
   </a>
   <a href="https://github.com/oe/react-sticky-kit/actions" target="_blank">
-    <img src="https://github.com/oe/react-sticky-kit/actions/workflows/ci.yml/badge.svg" alt="Build Status" />
+    <img src="https://img.shields.io/github/actions/workflow/status/oe/react-sticky-kit/ci.yml?style=flat-square" alt="Build Status" />
   </a>
   <a href="https://github.com/oe/react-sticky-kit/blob/main/LICENSE" target="_blank">
     <img src="https://img.shields.io/github/license/oe/react-sticky-kit?style=flat-square" alt="License" />
+  </a>
+  <a href="https://www.typescriptlang.org/" target="_blank">
+    <img src="https://img.shields.io/badge/TypeScript-5.0%2B-blue?logo=typescript&style=flat-square" alt="TypeScript" />
   </a>
 </p>
 
