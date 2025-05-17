@@ -42,6 +42,9 @@ yarn add react-sticky-kit
 pnpm add react-sticky-kit
 ```
 
+## Demo
+- [Apple iOS Contact App](https://codesandbox.io/p/sandbox/dreamy-hofstadter-v9dzfz)
+
 ## Usage
 
 ```tsx
