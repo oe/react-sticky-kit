@@ -107,6 +107,7 @@ export function StickyContainer(
   useEffect(() => {
     optionsRef.current.fixedOffsetTop = offsetTop;
     optionsRef.current.defaultMode = defaultMode;
+    // delay the update to ensure DOM is ready
     setTimeout(() => {
       scheduleUpdate();
     }, 10);
