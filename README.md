@@ -19,6 +19,9 @@
   <a href="https://www.typescriptlang.org/" target="_blank">
     <img src="https://img.shields.io/badge/TypeScript-5.0%2B-blue?logo=typescript&style=flat-square" alt="TypeScript" />
   </a>
+  <a href="#ssr-ssg-support" target="_blank">
+    <img src="https://img.shields.io/badge/SSR%2FSSG-Compatible-brightgreen?style=flat-square" alt="SSR/SSG Compatible" />
+  </a>
 </p>
 
 A lightweight, flexible React sticky container and item component library. Easily create sticky headers, sections, and advanced sticky layouts with support for multiple modes and edge cases.
@@ -28,6 +31,7 @@ A lightweight, flexible React sticky container and item component library. Easil
 - 📦 Simple API: `<StickyContainer>` and `<StickyItem>`
 - 🧩 Supports `replace`, `stack`, and `none` sticky modes
 - 🏷️ Customizable offset, z-index (baseZIndex), and sticky logic
+- 🔄 Supports SSR/SSG (Next.js, Gatsby, Astro, etc.)
 - 🧪 Handles edge cases: empty sections, dynamic heights, zero-height headers, long headers, etc.
 - ⚡️ Written in TypeScript, fully typed
 - 🧪 Includes demo pages for real-world scenarios
@@ -104,6 +108,52 @@ Open [http://localhost:5173](http://localhost:5173) and switch between demo page
 * [Mixed mode](http://localhost:5173/#mixed-mode) mix replace/stack/none mode
 * [Nested](http://localhost:5173/#dynamic-height) nest sticky containers
 * [Dynamic sticky items](http://localhost:5173/#nested) dynamic sticky items(add/remove)
+* [Dynamic offsetTop](http://localhost:5173/#dynamic-offset) dynamic offsetTop that adapts to header height changes
+
+## SSR/SSG Support
+
+React Sticky Kit supports Server-Side Rendering (SSR) and Static Site Generation (SSG), working seamlessly with frameworks like Next.js, Gatsby, Astro, and more.
+
+### Next.js Example
+
+```tsx
+// pages/index.tsx
+import { StickyContainer, StickyItem } from 'react-sticky-kit'
+import 'react-sticky-kit/dist/style.css'
+
+export default function Home() {
+  return (
+    <StickyContainer>
+      <StickyItem>
+        <header>Sticky Header</header>
+      </StickyItem>
+      <main>Content...</main>
+    </StickyContainer>
+  )
+}
+```
+
+### Astro Example
+
+```astro
+---
+// src/pages/index.astro
+import { StickyContainer, StickyItem } from 'react-sticky-kit'
+import 'react-sticky-kit/dist/style.css'
+---
+
+<html>
+  <head>...</head>
+  <body>
+    <StickyContainer client:load>
+      <StickyItem>
+        <header>Sticky Header</header>
+      </StickyItem>
+      <div>Content...</div>
+    </StickyContainer>
+  </body>
+</html>
+```
 
 ## License
 
