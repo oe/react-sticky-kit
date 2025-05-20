@@ -3,12 +3,14 @@ import ContactListDemo from './ContactListDemo';
 import MixedModeDemo from './MixedModeDemo';
 import NestedStickyDemo from './NestedStickyDemo';
 import DynamicStickyDemo from './DynamicStickyDemo';
+import DynamicOffsetDemo from './DynamicOffsetDemo';
 
 const pages = [
   { hash: 'ios-contact', name: 'iPhone Contacts Demo', component: <ContactListDemo /> },
   { hash: 'mixed-mode', name: 'Mixed Sticky Modes Demo', component: <MixedModeDemo /> },
   { hash: 'nested', name: 'Nested Sticky Containers', component: <NestedStickyDemo /> },
   { hash: 'dynamic', name: 'Dynamic Sticky Items', component: <DynamicStickyDemo /> },
+  { hash: 'dynamic-offset', name: 'Dynamic offsetTop Demo', component: <DynamicOffsetDemo /> },
 ];
 
 // Sync pageIdx with location.hash
