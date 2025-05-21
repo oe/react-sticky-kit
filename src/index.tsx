@@ -37,6 +37,7 @@ export function StickyContainer(
     defaultMode = 'replace', ...rest }: IStickyContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef<IStickyItemHandle[]>([]);
+  const rafId = useRef<number|null>(null);
   
   // Use ref to cache config to avoid unnecessary hook dependencies
   const optionsRef = useRef({
@@ -50,38 +51,41 @@ export function StickyContainer(
 
   const scheduleUpdate = useCallback(() => {
     const $container = containerRef.current;
-    if (!$container) return;
-    const rect = $container.getBoundingClientRect();
-    const options = optionsRef.current;
-    const fixedOffsetTop = options.fixedOffsetTop;
-    const stickyItemsHeight = options.stickyItemsHeight;
-    // Determine if the container intersects the top of the viewport
-    const canSticky = !(rect.top > fixedOffsetTop || rect.bottom < fixedOffsetTop);
-    // stop loop if container is not stickyable and lastCanSticky is false
-    if (!canSticky) {
-      if (optionsRef.current.lastCanSticky !== canSticky) {
-        $container.classList.toggle('can-sticky', false);
-        itemsRef.current.forEach(item => item.update(false, 0, 0, 0, 0));
-        optionsRef.current.lastCanSticky = canSticky;
+    if (!$container || rafId.current) return;
+    rafId.current = requestAnimationFrame(() => {
+      rafId.current = null;
+      const rect = $container.getBoundingClientRect();
+      const options = optionsRef.current;
+      const fixedOffsetTop = options.fixedOffsetTop;
+      const stickyItemsHeight = options.stickyItemsHeight;
+      // Determine if the container intersects the top of the viewport
+      const canSticky = !(rect.top > fixedOffsetTop || rect.bottom < fixedOffsetTop);
+      // stop loop if container is not stickyable and lastCanSticky is false
+      if (!canSticky) {
+        if (optionsRef.current.lastCanSticky !== canSticky) {
+          $container.classList.toggle('can-sticky', false);
+          itemsRef.current.forEach(item => item.update(false, 0, 0, 0, 0));
+          optionsRef.current.lastCanSticky = canSticky;
+        }
+        return;
       }
-      return;
-    }
-    optionsRef.current.lastCanSticky = canSticky;
-
-    // enable sticky when some items should be sticky
-    if (stickyItemsHeight > 0) {
-      $container.classList.toggle('can-sticky', true);
-    }
-
-    let accHeight = fixedOffsetTop;
-
-    // Calculate correction offset if container's bottom is not enough to display all sticky items
-    let correctionOffset = rect.bottom - (fixedOffsetTop + stickyItemsHeight);
-    // If correctionOffset > 0, there is enough space, no correction needed
-    if (correctionOffset > 0) correctionOffset = 0;
-    const offsetTopOfItems = itemsRef.current.map(item => item.el.getBoundingClientRect().top);
-    itemsRef.current.forEach((item, index) => {
-      accHeight += item.update(canSticky, offsetTopOfItems[index]!, accHeight + correctionOffset, offsetTopOfItems[index + 1], index);
+      optionsRef.current.lastCanSticky = canSticky;
+  
+      // enable sticky when some items should be sticky
+      if (stickyItemsHeight > 0) {
+        $container.classList.toggle('can-sticky', true);
+      }
+  
+      let accHeight = fixedOffsetTop;
+  
+      // Calculate correction offset if container's bottom is not enough to display all sticky items
+      let correctionOffset = rect.bottom - (fixedOffsetTop + stickyItemsHeight);
+      // If correctionOffset > 0, there is enough space, no correction needed
+      if (correctionOffset > 0) correctionOffset = 0;
+      const offsetTopOfItems = itemsRef.current.map(item => item.el.getBoundingClientRect().top);
+      itemsRef.current.forEach((item, index) => {
+        accHeight += item.update(canSticky, offsetTopOfItems[index]!, accHeight + correctionOffset, offsetTopOfItems[index + 1], index);
+      });
     });
   }, []);
 
