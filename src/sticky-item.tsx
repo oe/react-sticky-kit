@@ -40,41 +40,37 @@ export function StickyItem({ mode, children, className, ...rest}: IStickyItemPro
     }
     // Register sticky item and provide update logic
     const update: IStickyItemHandle['update'] = (canSticky, currentOffsetTop, offsetTop, nextOffsetTop, index) => {
-      if (!canSticky) {
+      // can sticky but has not reached offsetTop
+      if (!canSticky || currentOffsetTop > offsetTop) {
         // only update offsetTop if canSticky is true, to avoid unnecessary re-renders
         if(contextInfoRef.current.isSticky) setIsSticky(false);
         return 0;
       }
-      if (currentOffsetTop <= offsetTop) {
-        // .offsetHeight/.clientHeight could be rounded make it inaccurate
-        // Use getBoundingClientRect().height to get accurate height
-        const contentHeight = $content.getBoundingClientRect().height;
-        let newOffsetTop = offsetTop;
-        // In 'replace' mode, adjust height if next item overlaps current item
-        if (effectedMode === 'replace' && typeof nextOffsetTop !== 'undefined') {
-          const diff = nextOffsetTop - (offsetTop + contentHeight);
-          if (diff < 0) {
-            newOffsetTop = offsetTop + diff;
-            // If offset exceeds content height, disable sticky
-            if (diff + contentHeight < 0) {
-              if(contextInfoRef.current.isSticky) setIsSticky(false);
-              return 0;
-            }
+      // .offsetHeight/.clientHeight could be rounded make it inaccurate
+      // Use getBoundingClientRect().height to get accurate height
+      const contentHeight = $content.getBoundingClientRect().height;
+      let newOffsetTop = offsetTop;
+      // In 'replace' mode, adjust height if next item overlaps current item
+      if (effectedMode === 'replace' && typeof nextOffsetTop !== 'undefined') {
+        const diff = nextOffsetTop - (offsetTop + contentHeight);
+        if (diff < 0) {
+          newOffsetTop = offsetTop + diff;
+          // If offset exceeds content height, disable sticky
+          if (diff + contentHeight < 0) {
+            if(contextInfoRef.current.isSticky) setIsSticky(false);
+            return 0;
           }
         }
-        // set wrapper height before setting content offset to avoid scroll glitch
-        $contentWrapper.style.height = `${contentHeight}px`;
-        if(!contextInfoRef.current.isSticky) setIsSticky(true);
-        $content.style.top = `${newOffsetTop}px`;
-        $content.style.width = `${$contentWrapper.offsetWidth}px`;
-        // Lower z-index in 'replace' mode, raise in 'stack' mode to ensure stacking order
-        $content.style.zIndex = `${contextInfoRef.current.baseZIndex + (effectedMode === 'replace' ? -index : index)}`;
-        // In 'replace' mode, do not occupy offsetTop height
-        return effectedMode === 'replace' ? 0 : contentHeight;
-      } else {
-        setIsSticky(false);
       }
-      return 0;
+      // set wrapper height before setting content offset to avoid scroll glitch
+      $contentWrapper.style.height = `${contentHeight}px`;
+      if(!contextInfoRef.current.isSticky) setIsSticky(true);
+      $content.style.top = `${newOffsetTop}px`;
+      $content.style.width = `${$contentWrapper.offsetWidth}px`;
+      // Lower z-index in 'replace' mode, raise in 'stack' mode to ensure stacking order
+      $content.style.zIndex = `${contextInfoRef.current.baseZIndex + (effectedMode === 'replace' ? -index : index)}`;
+      // In 'replace' mode, do not occupy offsetTop height
+      return effectedMode === 'replace' ? 0 : contentHeight;
     };
 
     const handle: IStickyItemHandle = {

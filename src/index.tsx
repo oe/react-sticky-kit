@@ -55,9 +55,7 @@ export function StickyContainer(
     rafId.current = requestAnimationFrame(() => {
       rafId.current = null;
       const rect = $container.getBoundingClientRect();
-      const options = optionsRef.current;
-      const fixedOffsetTop = options.fixedOffsetTop;
-      const stickyItemsHeight = options.stickyItemsHeight;
+      const { fixedOffsetTop, stickyItemsHeight } = optionsRef.current;
       // Determine if the container intersects the top of the viewport
       const canSticky = !(rect.top > fixedOffsetTop || rect.bottom < fixedOffsetTop);
       // stop loop if container is not stickyable and lastCanSticky is false
@@ -77,7 +75,6 @@ export function StickyContainer(
       }
   
       let accHeight = fixedOffsetTop;
-  
       // Calculate correction offset if container's bottom is not enough to display all sticky items
       let correctionOffset = rect.bottom - (fixedOffsetTop + stickyItemsHeight);
       // If correctionOffset > 0, there is enough space, no correction needed
