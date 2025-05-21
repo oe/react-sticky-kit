@@ -39,6 +39,7 @@ export default defineConfig(({ command }) => {
         dts({
           entryRoot: 'src',
           outDir: 'dist',
+          exclude: ['test/**', 'demo/**'],
           copyDtsFiles: false, // Do not copy all d.ts files
           rollupTypes: true,   // Merge all type definitions into a single .d.ts
         }),
