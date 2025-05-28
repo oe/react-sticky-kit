@@ -31,6 +31,7 @@ A lightweight, flexible React sticky container and item component library. Easil
 - 📦 Simple API: `<StickyContainer>` and `<StickyItem>`
 - 🧩 Supports `replace`, `stack`, and `none` sticky modes
 - 🏷️ Customizable offset, z-index (baseZIndex), and sticky logic
+- 🖥️ Flexible reference containers (window, DOM elements, refs)
 - 🔄 Supports SSR/SSG (Next.js, Gatsby, Astro, etc.)
 - 🧪 Handles edge cases: empty sections, dynamic heights, zero-height headers, long headers, etc.
 - ⚡️ Written in TypeScript, fully typed
@@ -76,13 +77,14 @@ export default function Example() {
 ## Props
 
 ### `<StickyContainer />`
-| Prop                        | Type                                 | Default     | Description                                                                                 |
-|-----------------------------|--------------------------------------|-------------|---------------------------------------------------------------------------------------------|
-| `offsetTop`                 | `number`                             | `0`         | Offset from the top of the viewport                                                         |
-| `defaultMode`               | `'replace' \| 'stack' \| 'none'`     | `'replace'`| Default sticky mode for all items                                                           |
-| `baseZIndex`                | `number`                             | `200`       | Base z-index for sticky items. Should be greater than the number of sticky items.            |
-|                             |                                      |             | In `replace` mode, z-index = baseZIndex - index; in `stack` mode, z-index = baseZIndex + index. |
-| `onStickyItemsHeightChange` | `(height: number) => void`            |             | Callback when total sticky height changes                                                   |
+| Prop                        | Type                                                 | Default     | Description                                                                                 |
+|-----------------------------|------------------------------------------------------|-------------|---------------------------------------------------------------------------------------------|
+| `offsetTop`                 | `number`                                             | `0`         | Offset from the top of the viewport                                                         |
+| `defaultMode`               | `'replace' \| 'stack' \| 'none'`                     | `'replace'` | Default sticky mode for all items                                                           |
+| `baseZIndex`                | `number`                                             | `200`       | Base z-index for sticky items. Should be greater than the number of sticky items.            |
+|                             |                                                      |             | In `replace` mode, z-index = baseZIndex - index; in `stack` mode, z-index = baseZIndex + index. |
+| `onStickyItemsHeightChange` | `(height: number) => void`                          |             | Callback when total sticky height changes                                                   |
+| `referenceContainer`        | `HTMLElement \| React.RefObject<HTMLElement \| null> \| 'window'` |       | Optional reference container for sticky positioning. When set to 'window', behavior matches CSS position:sticky |
 
 ### `<StickyItem />`
 | Prop    | Type                                 | Default | Description                                 |
@@ -93,6 +95,52 @@ export default function Example() {
 - **replace**: Only one sticky item is visible at a time, replacing the previous.
 - **stack**: Sticky items stack on top of each other.
 - **none**: Sticky is disabled for this item.
+
+## Reference Container
+
+The `referenceContainer` prop allows you to control which container determines sticky behavior:
+
+```tsx
+import React, { useRef } from 'react';
+import { StickyContainer, StickyItem } from 'react-sticky-kit';
+
+function Example() {
+  // Create a ref for a custom container
+  const customContainerRef = useRef<HTMLDivElement>(null);
+  
+  return (
+    <div>
+      {/* 1. Default: Parent Container Reference */}
+      <StickyContainer>
+        <StickyItem><div>Sticky relative to parent container</div></StickyItem>
+        <div>Content...</div>
+      </StickyContainer>
+      
+      {/* 2. Window Reference (like CSS position:sticky) */}
+      <StickyContainer referenceContainer="window">
+        <StickyItem><div>Sticky relative to window viewport</div></StickyItem>
+        <div>Content...</div>
+      </StickyContainer>
+      
+      {/* 3. Custom Container Reference */}
+      <div ref={customContainerRef} style={{ height: '500px', border: '1px solid #ccc' }}>
+        Reference container
+      </div>
+      
+      <StickyContainer referenceContainer={customContainerRef}>
+        <StickyItem><div>Sticky relative to custom container</div></StickyItem>
+        <div>Content...</div>
+      </StickyContainer>
+    </div>
+  );
+}
+```
+
+### Special behavior of `referenceContainer="window"`
+
+When you set `referenceContainer="window"`, the sticky items will always stick when they reach the top of the viewport, regardless of their parent container's visibility. This exactly matches the behavior of native CSS `position: sticky`.
+
+In contrast, the default behavior (without specifying a reference container) only makes items sticky when their parent container is visible in the viewport.
 
 ## Demo
 
@@ -106,9 +154,10 @@ pnpm dev
 Open [http://localhost:5173](http://localhost:5173) and switch between demo pages to explore all features and edge cases:
 * [iOS Contact](http://localhost:5173/#ios-contact) a dead simple iOS contact clone
 * [Mixed mode](http://localhost:5173/#mixed-mode) mix replace/stack/none mode
-* [Nested](http://localhost:5173/#dynamic-height) nest sticky containers
-* [Dynamic sticky items](http://localhost:5173/#nested) dynamic sticky items(add/remove)
+* [Nested](http://localhost:5173/#nested) nest sticky containers
+* [Dynamic sticky items](http://localhost:5173/#dynamic) dynamic sticky items(add/remove)
 * [Dynamic offsetTop](http://localhost:5173/#dynamic-offset) dynamic offsetTop that adapts to header height changes
+* [Reference Container](http://localhost:5173/#reference-container) demo showing different reference container options
 
 ## SSR/SSG Support
 

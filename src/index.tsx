@@ -30,11 +30,18 @@ export interface IStickyContainerProps extends React.HTMLAttributes<HTMLDivEleme
    * @param height The total height of all sticky items inside the container.
    */
   onStickyItemsHeightChange?: (height: number) => void;
+  /**
+   * Optional reference container to use for sticky positioning.
+   * Can be a DOM element, ref object, or 'window'.
+   * When set to 'window', behavior will be similar to CSS position:sticky.
+   * When not specified, the component's own container will be used (default behavior).
+   */
+  referenceContainer?: HTMLElement | React.RefObject<HTMLElement | null> | 'window';
 }
 
 export function StickyContainer(
   { children, offsetTop = 0, baseZIndex, onStickyItemsHeightChange,
-    defaultMode = 'replace', ...rest }: IStickyContainerProps) {
+    defaultMode = 'replace', referenceContainer, ...rest }: IStickyContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef<IStickyItemHandle[]>([]);
   const rafId = useRef<number|null>(null);
@@ -49,15 +56,40 @@ export function StickyContainer(
   });
   optionsRef.current.onStickyItemsHeightChange = onStickyItemsHeightChange;
 
+  // Get the reference container's bounding rectangle
+  const getReferenceRect = useCallback((): DOMRect => {
+    if (referenceContainer === 'window') {
+      // Create a DOMRect-like object for the window
+      return {
+        top: 0, bottom: window.innerHeight,
+        left: 0, right: window.innerWidth,
+        width: window.innerWidth, height: window.innerHeight,
+        x: 0, y: 0,
+        toJSON: () => ({})
+      };
+    } else if (referenceContainer instanceof HTMLElement) {
+      return referenceContainer.getBoundingClientRect();
+    } else if (referenceContainer?.current instanceof HTMLElement) {
+      return referenceContainer.current.getBoundingClientRect();
+    }
+    // Default: use the component's own container
+    return containerRef.current?.getBoundingClientRect() || 
+      { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0, x: 0, y: 0, toJSON: () => ({}) };
+  }, [referenceContainer]);
+
   const scheduleUpdate = useCallback(() => {
     const $container = containerRef.current;
     if (!$container || rafId.current) return;
     rafId.current = requestAnimationFrame(() => {
       rafId.current = null;
-      const rect = $container.getBoundingClientRect();
+      const rect = getReferenceRect();
       const { fixedOffsetTop, stickyItemsHeight } = optionsRef.current;
-      // Determine if the container intersects the top of the viewport
-      const canSticky = !(rect.top > fixedOffsetTop || rect.bottom < fixedOffsetTop);
+      
+      // For window reference, we always consider it sticky
+      // since the window viewport is always visible
+      const canSticky = referenceContainer === 'window' ? true 
+        : !(rect.top > fixedOffsetTop || rect.bottom < fixedOffsetTop);
+      
       // stop loop if container is not stickyable and lastCanSticky is false
       if (!canSticky) {
         if (optionsRef.current.lastCanSticky !== canSticky) {
@@ -84,7 +116,7 @@ export function StickyContainer(
         accHeight += item.update(canSticky, offsetTopOfItems[index]!, accHeight + correctionOffset, offsetTopOfItems[index + 1], index);
       });
     });
-  }, []);
+  }, [getReferenceRect, referenceContainer]);
 
   // Update the total height of sticky items
   const updateStickyItemsHeight = useCallback((height: number) => {
