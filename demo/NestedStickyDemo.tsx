@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { StickyContainer, StickyItem } from '../src';
 
-const OUTER_OFFSET = 48;
+const OUTER_OFFSET = 60;
 
 export default function NestedStickyDemo() {
   const [outerStickyHeight, setOuterStickyHeight] = useState(0);
   console.log('outerStickyHeight', outerStickyHeight);
   return (
-    <div style={{ maxWidth: 700, margin: '0 auto', background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #0001', overflow: 'hidden', minHeight: 900 }}>
-      <h2 style={{ textAlign: 'center', margin: 0, padding: 16, background: '#f5f5f5' }}>Nested Sticky Containers</h2>
+    <div style={{ maxWidth: 700, margin: '0 auto', background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #0001', minHeight: 900 }}>
+      <h2 style={{ textAlign: 'center', height: 60, boxSizing: 'border-box', zIndex: 400, position: 'sticky', top: 0, margin: 0, padding: 16, background: '#f5f5f5' }}>Nested Sticky Containers</h2>
       <StickyContainer offsetTop={OUTER_OFFSET} defaultMode="stack" onStickyItemsHeightChange={setOuterStickyHeight}>
         <StickyItem>
           <div style={{ background: '#e0eaff', padding: '8px 16px', fontWeight: 'bold', borderBottom: '1px solid #dde' }}>

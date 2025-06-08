@@ -4,7 +4,7 @@ import MixedModeDemo from './MixedModeDemo';
 import NestedStickyDemo from './NestedStickyDemo';
 import DynamicStickyDemo from './DynamicStickyDemo';
 import DynamicOffsetDemo from './DynamicOffsetDemo';
-import ReferenceContainerDemo from './ReferenceContainerDemo';
+import ConstraintDemo from './ConstraintDemo';
 
 const pages = [
   { hash: 'ios-contact', name: 'iPhone Contacts Demo', component: <ContactListDemo /> },
@@ -12,7 +12,7 @@ const pages = [
   { hash: 'nested', name: 'Nested Sticky Containers', component: <NestedStickyDemo /> },
   { hash: 'dynamic', name: 'Dynamic Sticky Items', component: <DynamicStickyDemo /> },
   { hash: 'dynamic-offset', name: 'Dynamic offsetTop Demo', component: <DynamicOffsetDemo /> },
-  { hash: 'reference-container', name: 'Reference Container Demo', component: <ReferenceContainerDemo /> },
+  { hash: 'constraint', name: 'Constraint Demo', component: <ConstraintDemo /> },
 ];
 
 // Sync pageIdx with location.hash

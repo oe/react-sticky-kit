@@ -31,17 +31,16 @@ export interface IStickyContainerProps extends React.HTMLAttributes<HTMLDivEleme
    */
   onStickyItemsHeightChange?: (height: number) => void;
   /**
-   * Optional reference container to use for sticky positioning.
-   * Can be a DOM element, ref object, or 'window'.
-   * When set to 'window', behavior will be similar to CSS position:sticky.
-   * When not specified, the component's own container will be used (default behavior).
+   * Define the constraint for sticky behavior
+   * - undefined (default): Sticky items will stop being sticky when StickyContainer leaves viewport
+   * - 'none': No constraints, similar to CSS position:sticky behavior
    */
-  referenceContainer?: HTMLElement | React.RefObject<HTMLElement | null> | 'window';
+  constraint?: 'none';
 }
 
 export function StickyContainer(
   { children, offsetTop = 0, baseZIndex, onStickyItemsHeightChange,
-    defaultMode = 'replace', referenceContainer, ...rest }: IStickyContainerProps) {
+    defaultMode = 'replace', constraint, ...rest }: IStickyContainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef<IStickyItemHandle[]>([]);
   const rafId = useRef<number|null>(null);
@@ -56,39 +55,41 @@ export function StickyContainer(
   });
   optionsRef.current.onStickyItemsHeightChange = onStickyItemsHeightChange;
 
-  // Get the reference container's bounding rectangle
-  const getReferenceRect = useCallback((): DOMRect => {
-    if (referenceContainer === 'window') {
-      // Create a DOMRect-like object for the window
+  // Get the constraint container's bounding rectangle
+  const getConstraintRect = useCallback((): DOMRect => {
+    if (constraint === 'none') {
+      // No constraint: Create a DOMRect-like object for the entire viewport (CSS-like behavior)
       return {
-        top: 0, bottom: window.innerHeight,
-        left: 0, right: window.innerWidth,
-        width: window.innerWidth, height: window.innerHeight,
+        top: -Infinity, bottom: Infinity,
+        left: -Infinity, right: Infinity,
+        width: Infinity, height: Infinity,
         x: 0, y: 0,
         toJSON: () => ({})
       };
-    } else if (referenceContainer instanceof HTMLElement) {
-      return referenceContainer.getBoundingClientRect();
-    } else if (referenceContainer?.current instanceof HTMLElement) {
-      return referenceContainer.current.getBoundingClientRect();
     }
-    // Default: use the component's own container
+    // Default constraint: use the StickyContainer's own bounds
     return containerRef.current?.getBoundingClientRect() || 
       { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0, x: 0, y: 0, toJSON: () => ({}) };
-  }, [referenceContainer]);
+  }, [constraint]);
 
   const scheduleUpdate = useCallback(() => {
     const $container = containerRef.current;
     if (!$container || rafId.current) return;
     rafId.current = requestAnimationFrame(() => {
       rafId.current = null;
-      const rect = getReferenceRect();
+      const rect = getConstraintRect();
       const { fixedOffsetTop, stickyItemsHeight } = optionsRef.current;
       
-      // For window reference, we always consider it sticky
-      // since the window viewport is always visible
-      const canSticky = referenceContainer === 'window' ? true 
-        : !(rect.top > fixedOffsetTop || rect.bottom < fixedOffsetTop);
+      // Calculate if sticky is allowed based on constraint type
+      let canSticky: boolean;
+      
+      if (constraint === 'none') {
+        // No constraint: CSS-like behavior, always allow sticky
+        canSticky = true;
+      } else {
+        // Default constraint: check if StickyContainer is visible in viewport
+        canSticky = !(rect.top > fixedOffsetTop || rect.bottom < fixedOffsetTop);
+      }
       
       // stop loop if container is not stickyable and lastCanSticky is false
       if (!canSticky) {
@@ -106,17 +107,33 @@ export function StickyContainer(
         $container.classList.toggle('can-sticky', true);
       }
   
-      let accHeight = fixedOffsetTop;
-      // Calculate correction offset if container's bottom is not enough to display all sticky items
-      let correctionOffset = rect.bottom - (fixedOffsetTop + stickyItemsHeight);
-      // If correctionOffset > 0, there is enough space, no correction needed
-      if (correctionOffset > 0) correctionOffset = 0;
-      const offsetTopOfItems = itemsRef.current.map(item => item.el.getBoundingClientRect().top);
+      let accHeight: number;
+      let correctionOffset = 0;
+      
+      if (constraint === 'none') {
+        // No constraint: use standard calculation
+        accHeight = fixedOffsetTop;
+        correctionOffset = rect.bottom - (fixedOffsetTop + stickyItemsHeight);
+        if (correctionOffset > 0) correctionOffset = 0;
+      } else {
+        // Default constraint: use standard calculation
+        accHeight = fixedOffsetTop;
+        correctionOffset = rect.bottom - (fixedOffsetTop + stickyItemsHeight);
+        if (correctionOffset > 0) correctionOffset = 0;
+      }
+      
+      // Calculate offsetTop for each item
+      const offsetTopOfItems = itemsRef.current.map(item => {
+        const itemRect = item.el.getBoundingClientRect();
+        // Always use viewport-relative position for simplified implementation
+        return itemRect.top;
+      });
+      
       itemsRef.current.forEach((item, index) => {
         accHeight += item.update(canSticky, offsetTopOfItems[index]!, accHeight + correctionOffset, offsetTopOfItems[index + 1], index);
       });
     });
-  }, [getReferenceRect, referenceContainer]);
+  }, [getConstraintRect, constraint]);
 
   // Update the total height of sticky items
   const updateStickyItemsHeight = useCallback((height: number) => {
@@ -160,6 +177,7 @@ export function StickyContainer(
   }, [scheduleUpdate]);
   
   useEffect(() => {
+    // Always listen to window scroll and resize
     window.addEventListener('scroll', scheduleUpdate, { passive: true });
     window.addEventListener('resize', scheduleUpdate, { passive: true });
   
@@ -178,7 +196,7 @@ export function StickyContainer(
         baseZIndex: fixedBaseZIndex,
         updateStickyItemsHeight,
         fixedOffsetTop: offsetTop, 
-        mode: defaultMode, 
+        mode: defaultMode,
       }}
     >
       <div 

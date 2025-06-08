@@ -84,7 +84,7 @@ export default function Example() {
 | `baseZIndex`                | `number`                                             | `200`       | Base z-index for sticky items. Should be greater than the number of sticky items.            |
 |                             |                                                      |             | In `replace` mode, z-index = baseZIndex - index; in `stack` mode, z-index = baseZIndex + index. |
 | `onStickyItemsHeightChange` | `(height: number) => void`                          |             | Callback when total sticky height changes                                                   |
-| `referenceContainer`        | `HTMLElement \| React.RefObject<HTMLElement \| null> \| 'window'` |       | Optional reference container for sticky positioning. When set to 'window', behavior matches CSS position:sticky |
+| `constraint`                | `'none'`                                             |             | Define the constraint for sticky behavior. 'none' = no constraints (CSS-like behavior) |
 
 ### `<StickyItem />`
 | Prop    | Type                                 | Default | Description                                 |
@@ -96,39 +96,31 @@ export default function Example() {
 - **stack**: Sticky items stack on top of each other.
 - **none**: Sticky is disabled for this item.
 
-## Reference Container
+## Constraint Behavior
 
-The `referenceContainer` prop allows you to control which container determines sticky behavior:
+The `constraint` prop allows you to control when sticky items should stop being sticky:
 
 ```tsx
-import React, { useRef } from 'react';
+import React from 'react';
 import { StickyContainer, StickyItem } from 'react-sticky-kit';
 
 function Example() {
-  // Create a ref for a custom container
-  const customContainerRef = useRef<HTMLDivElement>(null);
-  
   return (
     <div>
-      {/* 1. Default: Parent Container Reference */}
+      {/* 1. Default: Container-based constraint */}
       <StickyContainer>
-        <StickyItem><div>Sticky relative to parent container</div></StickyItem>
+        <StickyItem><div>Sticky stops when container leaves viewport</div></StickyItem>
         <div>Content...</div>
       </StickyContainer>
       
-      {/* 2. Window Reference (like CSS position:sticky) */}
-      <StickyContainer referenceContainer="window">
-        <StickyItem><div>Sticky relative to window viewport</div></StickyItem>
+      {/* 2. No constraints (like CSS position:sticky) */}
+      <StickyContainer constraint="none">
+        <StickyItem><div>Always sticky like CSS position:sticky</div></StickyItem>
         <div>Content...</div>
       </StickyContainer>
-      
-      {/* 3. Custom Container Reference */}
-      <div ref={customContainerRef} style={{ height: '500px', border: '1px solid #ccc' }}>
-        Reference container
-      </div>
-      
-      <StickyContainer referenceContainer={customContainerRef}>
-        <StickyItem><div>Sticky relative to custom container</div></StickyItem>
+    </div>
+  );
+}
         <div>Content...</div>
       </StickyContainer>
     </div>
@@ -136,11 +128,11 @@ function Example() {
 }
 ```
 
-### Special behavior of `referenceContainer="window"`
+### Special behavior of `constraint="none"`
 
-When you set `referenceContainer="window"`, the sticky items will always stick when they reach the top of the viewport, regardless of their parent container's visibility. This exactly matches the behavior of native CSS `position: sticky`.
+When you set `constraint="none"`, the sticky items will always stick when they reach the top of the viewport, regardless of their parent container's visibility. This exactly matches the behavior of native CSS `position: sticky`.
 
-In contrast, the default behavior (without specifying a reference container) only makes items sticky when their parent container is visible in the viewport.
+In contrast, the default behavior (without specifying a constraint) only makes items sticky when their parent container is visible in the viewport.
 
 ## Demo
 
@@ -157,7 +149,7 @@ Open [http://localhost:5173](http://localhost:5173) and switch between demo page
 * [Nested](http://localhost:5173/#nested) nest sticky containers
 * [Dynamic sticky items](http://localhost:5173/#dynamic) dynamic sticky items(add/remove)
 * [Dynamic offsetTop](http://localhost:5173/#dynamic-offset) dynamic offsetTop that adapts to header height changes
-* [Reference Container](http://localhost:5173/#reference-container) demo showing different reference container options
+* [Constraint Demo](http://localhost:5173/#constraint) demo showing different constraint options
 
 ## SSR/SSG Support
 
