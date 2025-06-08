@@ -196,6 +196,10 @@ import 'react-sticky-kit/dist/style.css'
 </html>
 ```
 
+## Publish steps
+
+`pnpm pub`
+
 ## License
 
 MIT
