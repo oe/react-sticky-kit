@@ -199,8 +199,19 @@ Sticky offsets use the viewport, even when an event comes from a nested scrollin
 element. Ancestor transforms and overflow clipping can affect fixed positioning;
 use native CSS `position: sticky` if you need offsets relative to a scrolling ancestor.
 
-When available, `ResizeObserver` updates dynamic content heights and widths. Without
-it, measurements update on scroll, window resize and component commits.
+When available, `ResizeObserver` updates dynamic content heights and widths, and
+tracks ancestor and preceding sibling sizes that can move the container. Scoped
+`MutationObserver` subscriptions refresh these observations when the surrounding
+DOM structure or relevant classes/styles change. No continuous polling is used.
+Without `ResizeObserver`, measurements update on scroll, window resize and component
+commits. Native browser scroll anchoring can move the viewport when content above
+it changes; sticky positions follow the resulting viewport.
+
+Wrapper padding, borders and `box-sizing` are accounted for when preserving the
+placeholder and content width. Definite inline heights are retained. Fixed headers
+also follow horizontal scrolling. Per-item layout metrics are cached and invalidated
+by observed dimension changes, relevant DOM changes and React commits. Inactive or
+fully replaced headers do not have their content heights measured during scrolling.
 `onStickyItemsHeightChange` reports the final total once per animation frame when
 it changes, including zero when no items remain sticky. It does not emit transient
 per-item totals or callbacks after the container unmounts.

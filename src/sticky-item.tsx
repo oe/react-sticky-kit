@@ -15,6 +15,8 @@ export function StickyItem({ mode, children, className, ...rest }: IStickyItemPr
   const effectiveMode = mode ?? context?.mode;
   const baseZIndex = context?.baseZIndex;
   const normalHeight = rest.style?.height;
+  const measurementRef = useRef<IStickyItemHandle | null>(null);
+  const scheduleUpdate = context?.scheduleUpdate;
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -23,34 +25,54 @@ export function StickyItem({ mode, children, className, ...rest }: IStickyItemPr
     const originalHeight = typeof normalHeight === 'number' ? `${normalHeight}px` : normalHeight ?? '';
     setStyle(wrapper, 'height', originalHeight);
     if (!register || !effectiveMode || effectiveMode === 'none') return;
+    const automaticHeight = normalHeight === undefined || ['auto', 'initial', 'unset', 'revert',
+      'revert-layer', 'fit-content', 'min-content', 'max-content'].includes(String(normalHeight));
     let sticky = false;
     const reset = () => {
       if (!sticky) return;
       sticky = false;
-      wrapper.style.height = originalHeight;
       content.classList.remove('is-sticky');
-      for (const property of ['top', 'width', 'z-index']) content.style.removeProperty(property);
+      wrapper.style.height = originalHeight;
+      for (const property of ['top', 'left', 'width', 'z-index']) content.style.removeProperty(property);
     };
-    const apply: IStickyItemHandle['apply'] = (top, height, width, index) => {
-      if (top === null) {
+    let box: ReturnType<typeof readBox> | null = null;
+    const measure: IStickyItemHandle['measure'] = rect => {
+      box ??= readBox(wrapper, content);
+      const height = content.getBoundingClientRect().height;
+      return { height, wrapperHeight: height + box.heightInset,
+        width: Math.max(0, rect.width - box.widthInset), left: rect.left + box.leftInset };
+    };
+    const apply: IStickyItemHandle['apply'] = layout => {
+      if (layout === null) {
         reset();
         return;
       }
+      const { top, wrapperHeight, width, left, index } = layout;
+      if (automaticHeight) setStyle(wrapper, 'height', `${wrapperHeight}px`);
+      setStyle(content, 'top', `${top}px`);
+      setStyle(content, 'left', `${left}px`);
+      setStyle(content, 'width', `${width}px`);
+      setStyle(content, 'zIndex', `${(baseZIndex ?? 200) + (effectiveMode === 'replace' ? -index : index)}`);
+      // Keep the placeholder in flow before switching position to avoid scroll jumps.
       if (!sticky) {
         sticky = true;
         content.classList.add('is-sticky');
       }
-      setStyle(wrapper, 'height', `${height}px`);
-      setStyle(content, 'top', `${top}px`);
-      setStyle(content, 'width', `${width}px`);
-      setStyle(content, 'zIndex', `${(baseZIndex ?? 200) + (effectiveMode === 'replace' ? -index : index)}`);
     };
-    const unregister = register({ el: wrapper, content, mode: effectiveMode, apply });
+    const handle: IStickyItemHandle = { el: wrapper, content, mode: effectiveMode, apply, measure, invalidate: () => { box = null; } };
+    measurementRef.current = handle;
+    const unregister = register(handle);
     return () => {
+      measurementRef.current = null;
       unregister();
       reset();
     };
   }, [register, effectiveMode, baseZIndex, normalHeight]);
+
+  useEffect(() => {
+    measurementRef.current?.invalidate();
+    scheduleUpdate?.();
+  });
 
   return (
     <div {...rest} className={['oe-sticky-item', className].filter(Boolean).join(' ')} ref={wrapperRef}>
@@ -59,6 +81,20 @@ export function StickyItem({ mode, children, className, ...rest }: IStickyItemPr
   );
 }
 
-function setStyle(element: HTMLElement, property: 'height' | 'top' | 'width' | 'zIndex', value: string) {
+function setStyle(element: HTMLElement, property: 'height' | 'top' | 'left' | 'width' | 'zIndex', value: string) {
   if (element.style[property] !== value) element.style[property] = value;
+}
+
+function readBox(wrapper: HTMLElement, content: HTMLElement) {
+  const outer = getComputedStyle(wrapper);
+  const inner = getComputedStyle(content);
+  const number = (value: string) => Number.parseFloat(value) || 0;
+  const horizontal = (style: CSSStyleDeclaration) => number(style.paddingLeft) + number(style.paddingRight) +
+    number(style.borderLeftWidth) + number(style.borderRightWidth);
+  return {
+    heightInset: outer.boxSizing === 'border-box' ? number(outer.paddingTop) + number(outer.paddingBottom) +
+      number(outer.borderTopWidth) + number(outer.borderBottomWidth) : 0,
+    widthInset: horizontal(outer) + (inner.boxSizing === 'border-box' ? 0 : horizontal(inner)),
+    leftInset: number(outer.paddingLeft) + number(outer.borderLeftWidth),
+  };
 }

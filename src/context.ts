@@ -6,16 +6,26 @@ export const DEFAULT_BASE_Z_INDEX = 200;
 /** Replace the previous item, stack below it, or disable sticky behavior. */
 export type IStickyMode = 'replace' | 'stack' | 'none';
 
+export interface IStickyItemMeasurement {
+  height: number;
+  wrapperHeight: number;
+  width: number;
+  left: number;
+}
+
 export interface IStickyItemHandle {
   el: HTMLElement;
   content: HTMLElement;
   mode: Exclude<IStickyMode, 'none'>;
-  apply: (top: number | null, height: number, width: number, index: number) => void;
+  measure: (rect: DOMRect) => IStickyItemMeasurement;
+  invalidate: () => void;
+  apply: (layout: (IStickyItemMeasurement & { top: number; index: number }) | null) => void;
 }
 
 export interface IStickyGroupContextValue {
   baseZIndex: number;
   register: (handle: IStickyItemHandle) => () => void;
+  scheduleUpdate: () => void;
   mode: IStickyMode;
 }
 

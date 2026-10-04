@@ -85,6 +85,18 @@ describe('sticky layout and lifecycle', () => {
     expect(reads).toHaveLength(1);
   });
 
+  it('only measures the eligible replacement header, even with many passed and future headers', () => {
+    const { getByTestId } = render(<StickyContainer>
+      {Array.from({ length: 100 }, (_, index) => <StickyItem key={index} data-testid={`header-${index}`}>{index}</StickyItem>)}
+    </StickyContainer>);
+    for (let index = 0; index < 100; index++) box(getByTestId(`header-${index}`), { top: (index - 50) * 200 - 100 });
+    flush();
+    expect(reads.filter(className => className === 'oe-sticky-content')).toHaveLength(1);
+    expect(item(getByTestId('header-50'))).toHaveClass('is-sticky');
+    expect(item(getByTestId('header-49'))).not.toHaveClass('is-sticky');
+    expect(item(getByTestId('header-51'))).not.toHaveClass('is-sticky');
+  });
+
   it('batches geometry reads before any style writes and avoids registration measurements', () => {
     const { getByTestId } = render(<StickyContainer defaultMode="stack">
       <StickyItem data-testid="a">A</StickyItem><StickyItem data-testid="b">B</StickyItem>
@@ -197,6 +209,20 @@ describe('sticky layout and lifecycle', () => {
     expect(disconnect).toHaveBeenCalledTimes(2);
     resize([], {} as ResizeObserver); fireEvent.scroll(window); flush();
     expect(onHeight).not.toHaveBeenCalled();
+  });
+
+  it('disconnects layout mutation observers under StrictMode and unmount', () => {
+    const observers: { active: boolean }[] = [];
+    vi.stubGlobal('MutationObserver', class {
+      active = false;
+      constructor() { observers.push(this); }
+      observe() { this.active = true; }
+      disconnect() { this.active = false; }
+    });
+    const { unmount } = render(<StrictMode><StickyContainer><StickyItem>A</StickyItem></StickyContainer></StrictMode>);
+    expect(observers.filter(observer => observer.active)).toHaveLength(1);
+    unmount();
+    expect(observers.filter(observer => observer.active)).toHaveLength(0);
   });
 
   it('handles element scroll events and works without ResizeObserver', () => {

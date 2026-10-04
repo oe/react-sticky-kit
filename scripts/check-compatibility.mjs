@@ -48,7 +48,8 @@ void result;
     assert.match(renderToString(element), /Compatibility header/);
     const dom = new JSDOM('<div id="root"></div>');
     Object.assign(globalThis, { window: dom.window, document: dom.window.document,
-      Node: dom.window.Node, HTMLElement: dom.window.HTMLElement, IS_REACT_ACT_ENVIRONMENT: true });
+      Node: dom.window.Node, HTMLElement: dom.window.HTMLElement,
+      getComputedStyle: dom.window.getComputedStyle.bind(dom.window), IS_REACT_ACT_ENVIRONMENT: true });
     Object.defineProperty(globalThis, 'navigator', { configurable: true, value: dom.window.navigator });
     let callback;
     globalThis.requestAnimationFrame = scheduled => { callback = scheduled; return 0; };
