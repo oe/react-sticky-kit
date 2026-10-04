@@ -1,113 +1,105 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { type IStickyMode, type IStickyItemHandle, useStickyContext, MIN_BASE_Z_INDEX } from './context';
+import React, { useRef, useEffect } from 'react';
+import { type IStickyMode, type IStickyItemHandle, useStickyContext } from './context.js';
 
 export interface IStickyItemProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
-  /**
-   * Sticky mode for this item. Defaults to the StickyContainer's mode if not specified.
-   */
-  mode?: IStickyMode
+  /** Sticky mode for this item. Defaults to the StickyContainer's mode. */
+  mode?: IStickyMode;
 }
 
-export function StickyItem({ mode, children, className, ...rest}: IStickyItemProps) {
+export function StickyItem({ mode, children, className, ...rest }: IStickyItemProps): React.ReactElement<any, any> { // eslint-disable-line @typescript-eslint/no-explicit-any -- Preserve the existing JSX.Element return shape.
   const context = useStickyContext();
-  const contentWrapperRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const [isSticky, setIsSticky] = useState(false);
+  const register = context?.register;
+  const effectiveMode = mode ?? context?.mode;
+  const baseZIndex = context?.baseZIndex;
+  const normalHeight = rest.style?.height;
+  const measurementRef = useRef<IStickyItemHandle | null>(null);
+  const scheduleUpdate = context?.scheduleUpdate;
 
-  // Use ref to cache fixedOffsetTop and avoid unnecessary re-renders
-  const contextInfoRef = useRef({
-    fixedOffsetTop: context?.fixedOffsetTop || 0,
-    isSticky,
-    baseZIndex: context?.baseZIndex || MIN_BASE_Z_INDEX,
-  });
-  contextInfoRef.current.baseZIndex = context?.baseZIndex || MIN_BASE_Z_INDEX;
-  contextInfoRef.current.fixedOffsetTop = context?.fixedOffsetTop || 0;
-  contextInfoRef.current.isSticky = isSticky;
-
-  // Do not apply sticky if context is missing or mode is 'none'
   useEffect(() => {
-    const $content = contentRef.current;
-    const $contentWrapper = contentWrapperRef.current;
-    const effectedMode = mode || context?.mode;
-    // Handle cases where sticky cannot be applied
-    if (!context || !$contentWrapper || !$content
-      // Skip sticky if mode is 'none' or not set
-      || effectedMode === 'none' || !effectedMode
-      || !context.register) {
-      setIsSticky(false);
-      return;
-    }
-    // Register sticky item and provide update logic
-    const update: IStickyItemHandle['update'] = (canSticky, currentOffsetTop, offsetTop, nextOffsetTop, index) => {
-      // can sticky but has not reached offsetTop
-      if (!canSticky || currentOffsetTop > offsetTop) {
-        // only update offsetTop if canSticky is true, to avoid unnecessary re-renders
-        if(contextInfoRef.current.isSticky) setIsSticky(false);
-        return 0;
-      }
-      // .offsetHeight/.clientHeight could be rounded make it inaccurate
-      // Use getBoundingClientRect().height to get accurate height
-      const contentHeight = $content.getBoundingClientRect().height;
-      let newOffsetTop = offsetTop;
-      // In 'replace' mode, adjust height if next item overlaps current item
-      if (effectedMode === 'replace' && typeof nextOffsetTop !== 'undefined') {
-        const diff = nextOffsetTop - (offsetTop + contentHeight);
-        if (diff < 0) {
-          newOffsetTop = offsetTop + diff;
-          // If offset exceeds content height, disable sticky
-          if (diff + contentHeight < 0) {
-            if(contextInfoRef.current.isSticky) setIsSticky(false);
-            return 0;
-          }
-        }
-      }
-      // set wrapper height before setting content offset to avoid scroll glitch
-      $contentWrapper.style.height = `${contentHeight}px`;
-      if(!contextInfoRef.current.isSticky) setIsSticky(true);
-      $content.style.top = `${newOffsetTop}px`;
-      $content.style.width = `${$contentWrapper.offsetWidth}px`;
-      // Lower z-index in 'replace' mode, raise in 'stack' mode to ensure stacking order
-      $content.style.zIndex = `${contextInfoRef.current.baseZIndex + (effectedMode === 'replace' ? -index : index)}`;
-      // In 'replace' mode, do not occupy offsetTop height
-      return effectedMode === 'replace' ? 0 : contentHeight;
+    const wrapper = wrapperRef.current;
+    const content = contentRef.current;
+    if (!wrapper || !content) return;
+    const originalHeight = typeof normalHeight === 'number' ? `${normalHeight}px` : normalHeight ?? '';
+    setStyle(wrapper, 'height', originalHeight);
+    if (!register || !effectiveMode || effectiveMode === 'none') return;
+    const automaticHeight = normalHeight === undefined || ['auto', 'initial', 'unset', 'revert',
+      'revert-layer', 'fit-content', 'min-content', 'max-content'].includes(String(normalHeight));
+    let sticky = false;
+    let previousLayout: Parameters<IStickyItemHandle['apply']>[0] = null;
+    const reset = () => {
+      if (!sticky) return;
+      sticky = false;
+      previousLayout = null;
+      content.classList.remove('is-sticky');
+      wrapper.style.height = originalHeight;
+      for (const property of ['top', 'left', 'width', 'z-index']) content.style.removeProperty(property);
     };
-
-    const handle: IStickyItemHandle = {
-      el: $contentWrapper,
-      update,
-    }
-
-    return context.register(handle);
-
-  }, [context?.mode, context?.register, mode]);
+    let box: ReturnType<typeof readBox> | null = null;
+    const measure: IStickyItemHandle['measure'] = rect => {
+      box ??= readBox(wrapper, content);
+      const height = content.getBoundingClientRect().height;
+      return { height, wrapperHeight: height + box.heightInset,
+        width: Math.max(0, rect.width - box.widthInset), left: rect.left + box.leftInset };
+    };
+    const apply: IStickyItemHandle['apply'] = layout => {
+      if (layout === null) {
+        reset();
+        return;
+      }
+      const { top, wrapperHeight, width, left, index } = layout;
+      if (previousLayout && previousLayout.top === top && previousLayout.wrapperHeight === wrapperHeight &&
+        previousLayout.width === width && previousLayout.left === left && previousLayout.index === index) return;
+      previousLayout = layout;
+      if (automaticHeight) setStyle(wrapper, 'height', `${wrapperHeight}px`);
+      setStyle(content, 'top', `${top}px`);
+      setStyle(content, 'left', `${left}px`);
+      setStyle(content, 'width', `${width}px`);
+      setStyle(content, 'zIndex', `${(baseZIndex ?? 200) + (effectiveMode === 'replace' ? -index : index)}`);
+      // Keep the placeholder in flow before switching position to avoid scroll jumps.
+      if (!sticky) {
+        sticky = true;
+        content.classList.add('is-sticky');
+      }
+    };
+    const handle: IStickyItemHandle = { el: wrapper, content, mode: effectiveMode, apply, measure, invalidate: () => { box = null; previousLayout = null; } };
+    measurementRef.current = handle;
+    const unregister = register(handle);
+    return () => {
+      measurementRef.current = null;
+      unregister();
+      reset();
+    };
+  }, [register, effectiveMode, baseZIndex, normalHeight]);
 
   useEffect(() => {
-    const $item = contentWrapperRef.current;
-    const $content = contentRef.current;
-    const updateStickyItemsHeight = context?.updateStickyItemsHeight;
-    if (!isSticky || !$item || !$content || !updateStickyItemsHeight) return;
-    const removeHeight = updateStickyItemsHeight($content.getBoundingClientRect().height);
-  
-    return () => {
-      unsetStyle($item, ['height']);
-      unsetStyle($content, ['top', 'z-index', 'width']);
-      removeHeight();
-    }
-  }, [isSticky, context?.updateStickyItemsHeight])
-  
+    measurementRef.current?.invalidate();
+    scheduleUpdate?.();
+  });
 
   return (
-    <div className={'oe-sticky-item ' + (className || '')} {...rest} ref={contentWrapperRef}>
-      <div className={'oe-sticky-content ' + (isSticky ? 'is-sticky':  '')} ref={contentRef}>
-        {children}
-      </div>
+    <div {...rest} className={['oe-sticky-item', className].filter(Boolean).join(' ')} ref={wrapperRef}>
+      <div className="oe-sticky-content" ref={contentRef}>{children}</div>
     </div>
-  )
+  );
 }
 
-function unsetStyle(el: HTMLElement, styles: string[]) {
-  styles.forEach(style => {
-    el.style.removeProperty(style);
-  });
+function setStyle(element: HTMLElement, property: 'height' | 'top' | 'left' | 'width' | 'zIndex', value: string) {
+  if (element.style[property] !== value) element.style[property] = value;
+}
+
+function readBox(wrapper: HTMLElement, content: HTMLElement) {
+  const outer = getComputedStyle(wrapper);
+  const inner = getComputedStyle(content);
+  const number = (value: string) => Number.parseFloat(value) || 0;
+  const horizontal = (style: CSSStyleDeclaration) => number(style.paddingLeft) + number(style.paddingRight) +
+    number(style.borderLeftWidth) + number(style.borderRightWidth);
+  return {
+    heightInset: outer.boxSizing === 'border-box' ? number(outer.paddingTop) + number(outer.paddingBottom) +
+      number(outer.borderTopWidth) + number(outer.borderBottomWidth) : 0,
+    widthInset: horizontal(outer) + (inner.boxSizing === 'border-box' ? 0 : horizontal(inner)),
+    leftInset: number(outer.paddingLeft) + number(outer.borderLeftWidth),
+  };
 }

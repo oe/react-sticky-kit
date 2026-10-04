@@ -1,10 +1,12 @@
 import React, { useRef, useEffect, useCallback, useMemo } from 'react';
-import { StickyGroupContext, type IStickyItemHandle, MIN_BASE_Z_INDEX, DEFAULT_BASE_Z_INDEX } from './context';
-
+import { StickyGroupContext, type IStickyItemHandle, MIN_BASE_Z_INDEX, DEFAULT_BASE_Z_INDEX } from './context.js';
 import './style.scss';
+import { observeLayoutChanges } from './layout-observer.js';
+import { observeResize } from './resize-observer.js';
+import { subscribeUpdates } from './scheduler.js';
 
-export type { IStickyMode } from './context';
-export * from './sticky-item';
+export type { IStickyMode } from './context.js';
+export * from './sticky-item.js';
 
 export interface IStickyContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
@@ -17,7 +19,6 @@ export interface IStickyContainerProps extends React.HTMLAttributes<HTMLDivEleme
    * * - When using the `replace` mode, the z-index of a `StickyItem` is calculated as `baseZIndex` minus its index within the container.
    * * - When using the `stack` mode, the z-index of a `StickyItem` is calculated as `baseZIndex` plus its index.
    * * should be greater than number of sticky items in the container.
-   * * for performance reasons, when baseZIndex is changed, the component will not re-render.
    * * use it when you need nest StickyContainer or need to change z-index of sticky items.
    */
   baseZIndex?: number;
@@ -33,195 +34,163 @@ export interface IStickyContainerProps extends React.HTMLAttributes<HTMLDivEleme
   /**
    * Define the constraint for sticky behavior
    * - undefined (default): Sticky items will stop being sticky when StickyContainer leaves viewport
-   * - 'none': No constraints, similar to CSS position:sticky behavior
+   * - 'none': No container boundary; offsets remain viewport-relative
    */
   constraint?: 'none';
 }
 
-export function StickyContainer(
-  { children, offsetTop = 0, baseZIndex, onStickyItemsHeightChange,
-    defaultMode = 'replace', constraint, ...rest }: IStickyContainerProps) {
+export function StickyContainer({ children, offsetTop = 0, baseZIndex,
+  onStickyItemsHeightChange, defaultMode = 'replace', constraint, className, ...rest
+}: IStickyContainerProps): React.ReactElement<any, any> { // eslint-disable-line @typescript-eslint/no-explicit-any -- Preserve the existing JSX.Element return shape.
   const containerRef = useRef<HTMLDivElement>(null);
-  const itemsRef = useRef<IStickyItemHandle[]>([]);
-  const rafId = useRef<number|null>(null);
-  
-  // Use ref to cache config to avoid unnecessary hook dependencies
-  const optionsRef = useRef({
-    fixedOffsetTop: offsetTop,
-    defaultMode,
-    stickyItemsHeight: 0,
-    onStickyItemsHeightChange,
-    lastCanSticky: false,
-  });
-  optionsRef.current.onStickyItemsHeightChange = onStickyItemsHeightChange;
+  const itemsRef = useRef(new Set<IStickyItemHandle>());
+  const registeredItemsRef = useRef<IStickyItemHandle[] | null>(null);
+  const handlesRef = useRef(new Map<Element, IStickyItemHandle>());
+  const stickyRef = useRef(false);
+  const updatesRef = useRef<ReturnType<typeof subscribeUpdates> | null>(null);
+  const observationsRef = useRef(new Map<Element, () => void>());
+  const heightRef = useRef(0);
+  const optionsRef = useRef({ offsetTop, constraint, onStickyItemsHeightChange });
 
-  // Get the constraint container's bounding rectangle
-  const getConstraintRect = useCallback((): DOMRect => {
-    if (constraint === 'none') {
-      // No constraint: Create a DOMRect-like object for the entire viewport (CSS-like behavior)
-      return {
-        top: -Infinity, bottom: Infinity,
-        left: -Infinity, right: Infinity,
-        width: Infinity, height: Infinity,
-        x: 0, y: 0,
-        toJSON: () => ({})
-      };
-    }
-    // Default constraint: use the StickyContainer's own bounds
-    return containerRef.current?.getBoundingClientRect() || 
-      { top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0, x: 0, y: 0, toJSON: () => ({}) };
-  }, [constraint]);
+  const scheduleUpdate = useCallback(() => updatesRef.current?.schedule(), []);
 
-  const scheduleUpdate = useCallback(() => {
-    const $container = containerRef.current;
-    if (!$container || rafId.current) return;
-    rafId.current = requestAnimationFrame(() => {
-      rafId.current = null;
-      const rect = getConstraintRect();
-      const { fixedOffsetTop, stickyItemsHeight } = optionsRef.current;
-      
-      // Calculate if sticky is allowed based on constraint type
-      let canSticky: boolean;
-      
-      if (constraint === 'none') {
-        // No constraint: CSS-like behavior, always allow sticky
-        canSticky = true;
-      } else {
-        // Default constraint: check if StickyContainer is visible in viewport
-        canSticky = !(rect.top > fixedOffsetTop || rect.bottom < fixedOffsetTop);
+  const readLayout = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const options = optionsRef.current;
+    const rect = container.getBoundingClientRect();
+    const canSticky = options.constraint === 'none' ||
+      (rect.top <= options.offsetTop && rect.bottom >= options.offsetTop);
+
+    // Offscreen containers need only one rectangle read, regardless of item count.
+    if (!canSticky) return () => {
+      if (stickyRef.current) {
+        container.classList.remove('can-sticky');
+        for (const item of itemsRef.current) item.apply(null);
+        stickyRef.current = false;
       }
-      
-      // stop loop if container is not stickyable and lastCanSticky is false
-      if (!canSticky) {
-        if (optionsRef.current.lastCanSticky !== canSticky) {
-          $container.classList.toggle('can-sticky', false);
-          itemsRef.current.forEach(item => item.update(false, 0, 0, 0, 0));
-          optionsRef.current.lastCanSticky = canSticky;
-        }
-        return;
+      if (heightRef.current !== 0) {
+        heightRef.current = 0;
+        return () => options.onStickyItemsHeightChange?.(0);
       }
-      optionsRef.current.lastCanSticky = canSticky;
-  
-      // enable sticky when some items should be sticky
-      if (stickyItemsHeight > 0) {
-        $container.classList.toggle('can-sticky', true);
-      }
-  
-      let accHeight: number;
-      let correctionOffset = 0;
-      
-      if (constraint === 'none') {
-        // No constraint: use standard calculation
-        accHeight = fixedOffsetTop;
-        correctionOffset = rect.bottom - (fixedOffsetTop + stickyItemsHeight);
-        if (correctionOffset > 0) correctionOffset = 0;
-      } else {
-        // Default constraint: use standard calculation
-        accHeight = fixedOffsetTop;
-        correctionOffset = rect.bottom - (fixedOffsetTop + stickyItemsHeight);
-        if (correctionOffset > 0) correctionOffset = 0;
-      }
-      
-      // Calculate offsetTop for each item
-      const offsetTopOfItems = itemsRef.current.map(item => {
-        const itemRect = item.el.getBoundingClientRect();
-        // Always use viewport-relative position for simplified implementation
-        return itemRect.top;
-      });
-      
-      itemsRef.current.forEach((item, index) => {
-        accHeight += item.update(canSticky, offsetTopOfItems[index]!, accHeight + correctionOffset, offsetTopOfItems[index + 1], index);
-      });
+    };
+
+    // Read all geometry before applying styles; sort cached rectangles, including reorders.
+    // Cache registration only; geometry and visual order remain fresh every frame.
+    const registeredItems = registeredItemsRef.current ??= [...itemsRef.current];
+    const measurements = registeredItems.map(item => ({
+      item, rect: item.el.getBoundingClientRect(),
+    })).sort((a, b) => {
+      const difference = a.rect.top - b.rect.top;
+      if (difference !== 0) return difference;
+      const position = a.item.el.compareDocumentPosition(b.item.el);
+      return position & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
     });
-  }, [getConstraintRect, constraint]);
-
-  // Update the total height of sticky items
-  const updateStickyItemsHeight = useCallback((height: number) => {
-    const nextHeight = optionsRef.current.stickyItemsHeight + height;
-    optionsRef.current.stickyItemsHeight = nextHeight;
-    // Trigger the callback asynchronously to avoid UI jank
-    setTimeout(() => {
-      optionsRef.current.onStickyItemsHeightChange?.(nextHeight);
-    }, 0);
+    let offset = options.offsetTop;
+    let totalHeight = 0;
+    const plans = measurements.map(({ item, rect: itemRect }, index) => {
+      if (itemRect.top > offset) return null;
+      const nextTop = measurements[index + 1]?.rect.top;
+      if (item.mode === 'replace' && nextTop !== undefined && nextTop < offset) return null;
+      // Only eligible contents need measuring; all reads still precede every write.
+      const dimensions = item.measure(itemRect);
+      const top = item.mode === 'replace' && nextTop !== undefined ?
+        Math.min(offset, nextTop - dimensions.height) : offset;
+      totalHeight += dimensions.height;
+      if (item.mode === 'stack') offset += dimensions.height;
+      return { ...dimensions, top, index };
+    });
+    const correction = options.constraint === 'none' ? 0 :
+      Math.min(0, rect.bottom - options.offsetTop - totalHeight);
     return () => {
-      const nextHeight = optionsRef.current.stickyItemsHeight - height;
-      optionsRef.current.stickyItemsHeight = nextHeight;
-      // Trigger the callback asynchronously to avoid UI jank
-      setTimeout(() => {
-        optionsRef.current.onStickyItemsHeightChange?.(nextHeight);
-      }, 0);
-    }
+      stickyRef.current = plans.some(plan => plan !== null);
+      container.classList.toggle('can-sticky', stickyRef.current);
+      measurements.forEach(({ item }, index) => {
+        const plan = plans[index];
+        if (plan) plan.top += correction;
+        item.apply(plan);
+      });
+      if (heightRef.current !== totalHeight) {
+        heightRef.current = totalHeight;
+        return () => options.onStickyItemsHeightChange?.(totalHeight);
+      }
+    };
   }, []);
-    
-  // Update optionsRef values when props change
-  useEffect(() => {
-    optionsRef.current.fixedOffsetTop = offsetTop;
-    optionsRef.current.defaultMode = defaultMode;
-    // delay the update to ensure DOM is ready
-    setTimeout(() => {
-      scheduleUpdate();
-    }, 10);
-  }, [offsetTop, defaultMode, scheduleUpdate]);
-  
-  // Register a sticky item and keep items sorted by their position in the viewport
-  const register = useCallback((item: IStickyItemHandle) => {
-    itemsRef.current.push(item);
-    // Sort items by their position in the viewport to ensure correct update order
-    itemsRef.current = sortStickyItemsByRect(itemsRef.current);
-    scheduleUpdate();
 
+  const onResize = useCallback((entries: ResizeObserverEntry[]) => {
+    for (const entry of entries) handlesRef.current.get(entry.target)?.invalidate();
+    scheduleUpdate();
+  }, [scheduleUpdate]);
+  const invalidate = useCallback(() => {
+    for (const item of itemsRef.current) item.invalidate();
+  }, []);
+
+  const register = useCallback((item: IStickyItemHandle) => {
+    itemsRef.current.add(item);
+    registeredItemsRef.current = null;
+    handlesRef.current.set(item.el, item);
+    handlesRef.current.set(item.content, item);
+    if (updatesRef.current) {
+      observationsRef.current.set(item.el, observeResize(item.el, onResize));
+      observationsRef.current.set(item.content, observeResize(item.content, onResize));
+    }
+    scheduleUpdate();
     return () => {
-      itemsRef.current = itemsRef.current.filter(i => i !== item);
+      observationsRef.current.get(item.el)?.();
+      observationsRef.current.get(item.content)?.();
+      observationsRef.current.delete(item.el);
+      observationsRef.current.delete(item.content);
+      handlesRef.current.delete(item.el);
+      handlesRef.current.delete(item.content);
+      itemsRef.current.delete(item);
+      registeredItemsRef.current = null;
       scheduleUpdate();
     };
-  }, [scheduleUpdate]);
-  
-  useEffect(() => {
-    // Always listen to window scroll and resize
-    window.addEventListener('scroll', scheduleUpdate, { passive: true });
-    window.addEventListener('resize', scheduleUpdate, { passive: true });
-  
-    return () => {
-      window.removeEventListener('scroll', scheduleUpdate);
-      window.removeEventListener('resize', scheduleUpdate);
-    }
-  }, [scheduleUpdate]);
+  }, [scheduleUpdate, onResize]);
 
-  const fixedBaseZIndex = useMemo(() => fixBaseZIndex(baseZIndex), [baseZIndex]);
+  useEffect(() => {
+    updatesRef.current = subscribeUpdates(readLayout, invalidate);
+    let stopLayoutObserver: (() => void) | undefined;
+    if (typeof ResizeObserver !== 'undefined') {
+      if (containerRef.current) {
+        observationsRef.current.set(containerRef.current, observeResize(containerRef.current, onResize));
+        stopLayoutObserver = observeLayoutChanges(containerRef.current, () => {
+          invalidate();
+          scheduleUpdate();
+        });
+      }
+      for (const item of itemsRef.current) {
+        observationsRef.current.set(item.el, observeResize(item.el, onResize));
+        observationsRef.current.set(item.content, observeResize(item.content, onResize));
+      }
+    }
+    const observations = observationsRef.current;
+    return () => {
+      updatesRef.current?.stop();
+      updatesRef.current = null;
+      stopLayoutObserver?.();
+      for (const stop of observations.values()) stop();
+      observations.clear();
+    };
+  }, [readLayout, invalidate, scheduleUpdate, onResize]);
+
+  // Every commit can change item order or layout without a scroll event.
+  useEffect(() => {
+    optionsRef.current = { offsetTop, constraint, onStickyItemsHeightChange };
+    for (const item of itemsRef.current) item.invalidate();
+    scheduleUpdate();
+  });
+
+  const fixedBaseZIndex = baseZIndex === undefined ? DEFAULT_BASE_Z_INDEX :
+    Math.max(Number(baseZIndex) || 0, MIN_BASE_Z_INDEX);
+  const context = useMemo(() => ({ register, scheduleUpdate, baseZIndex: fixedBaseZIndex, mode: defaultMode }),
+    [register, scheduleUpdate, fixedBaseZIndex, defaultMode]);
 
   return (
-    <StickyGroupContext.Provider 
-      value={{
-        register,
-        baseZIndex: fixedBaseZIndex,
-        updateStickyItemsHeight,
-        fixedOffsetTop: offsetTop, 
-        mode: defaultMode,
-      }}
-    >
-      <div 
-        {...rest} 
-        ref={containerRef} 
-        className="oe-sticky-container"
-      >
+    <StickyGroupContext.Provider value={context}>
+      <div {...rest} ref={containerRef} className={['oe-sticky-container', className].filter(Boolean).join(' ')}>
         {children}
       </div>
     </StickyGroupContext.Provider>
   );
-}
-
-function fixBaseZIndex(baseZIndex?: number) {
-  if (typeof baseZIndex === 'undefined') return DEFAULT_BASE_Z_INDEX;
-  return Math.max(Number(baseZIndex) || 0, MIN_BASE_Z_INDEX); 
-}
-
-/**
- * Sort sticky items by their position in the viewport (top to bottom)
- */
-function sortStickyItemsByRect(items: IStickyItemHandle[]) {
-  return items.sort((a, b) => {
-    const rectA = a.el.getBoundingClientRect();
-    const rectB = b.el.getBoundingClientRect();
-    return rectA.top - rectB.top;
-  });
 }

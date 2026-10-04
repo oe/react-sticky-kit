@@ -31,7 +31,7 @@ export default function App() {
   }, []);
 
   const handleNav = (n: string) => {
-    window.location.hash = n
+    window.location.assign(`#${n}`)
     setPageHash(n);
   };
 

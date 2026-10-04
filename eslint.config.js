@@ -9,15 +9,15 @@ import globals from 'globals';
 
 export default [
   js.configs.recommended,
+  { files: ['**/*.{ts,tsx}'], rules: { 'no-undef': 'off' } },
   {
-    files: ['**/*.{ts,tsx,js,jsx}'],
+    files: ['**/*.{ts,tsx,js,jsx,mjs}'],
     languageOptions: {
       parser: parserTs,
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
         ecmaFeatures: { jsx: true },
-        project: './tsconfig.json',
       },
       globals: {
         ...globals.browser,
@@ -38,6 +38,8 @@ export default [
       ...pluginJsxA11y.configs.recommended.rules,
       ...prettier.rules,
       'react/react-in-jsx-scope': 'off',
+      'react/prop-types': 'off',
+      'no-unused-vars': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
     },
     settings: {
