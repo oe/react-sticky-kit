@@ -7,7 +7,7 @@ export interface IStickyItemProps extends React.HTMLAttributes<HTMLDivElement> {
   mode?: IStickyMode;
 }
 
-export function StickyItem({ mode, children, className, ...rest }: IStickyItemProps): React.ReactElement {
+export function StickyItem({ mode, children, className, ...rest }: IStickyItemProps): React.ReactElement<any, any> { // eslint-disable-line @typescript-eslint/no-explicit-any -- Preserve the existing JSX.Element return shape.
   const context = useStickyContext();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);

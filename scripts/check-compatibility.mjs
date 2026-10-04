@@ -27,7 +27,9 @@ import 'react-sticky-kit/style';
 const mode: IStickyMode = 'stack';
 const element = React.createElement(StickyContainer, { defaultMode: mode, children:
   React.createElement(StickyItem, { children: 'Header' }) });
+const result: React.ReactElement<{ children: React.ReactNode }> = StickyContainer({ children: 'Header' });
 void element;
+void result;
 `;
     await writeFile(join(consumer, 'consumer.mts'), typecheck);
     await writeFile(join(consumer, 'consumer.cts'), typecheck);

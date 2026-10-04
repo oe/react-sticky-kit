@@ -38,7 +38,7 @@ export interface IStickyContainerProps extends React.HTMLAttributes<HTMLDivEleme
 
 export function StickyContainer({ children, offsetTop = 0, baseZIndex,
   onStickyItemsHeightChange, defaultMode = 'replace', constraint, className, ...rest
-}: IStickyContainerProps): React.ReactElement {
+}: IStickyContainerProps): React.ReactElement<any, any> { // eslint-disable-line @typescript-eslint/no-explicit-any -- Preserve the existing JSX.Element return shape.
   const containerRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef<IStickyItemHandle[]>([]);
   const rafId = useRef<number | null>(null);
