@@ -7,6 +7,21 @@ const kind = query.get('case');
 document.documentElement.style.overflowAnchor = 'none';
 
 function Fixture() {
+  const [firstVisible, setFirstVisible] = useState(true);
+  if (kind === 'multi') return <>
+    <button style={{ position: 'fixed', right: 0, top: 0, zIndex: 10000 }} onClick={() => setFirstVisible(false)}>Remove first</button>
+    <div style={{ height: 6000 }}>
+      <div data-testid="preceding" style={{ height: 200 }} />
+      {firstVisible && <StickyContainer data-testid="first-container">
+        <StickyItem data-testid="first"><div style={{ height: 40 }}>First</div></StickyItem>
+        <div style={{ height: 1000 }} />
+      </StickyContainer>}
+      <StickyContainer data-testid="remaining-container">
+        <StickyItem data-testid="remaining"><div style={{ height: 40 }}>Remaining</div></StickyItem>
+        <div style={{ height: 1000 }} />
+      </StickyContainer>
+    </div>
+  </>;
   if (kind === 'box') return <>
     <div style={{ height: 200 }} />
     <StickyContainer defaultMode="stack">

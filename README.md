@@ -200,9 +200,10 @@ element. Ancestor transforms and overflow clipping can affect fixed positioning;
 use native CSS `position: sticky` if you need offsets relative to a scrolling ancestor.
 
 When available, `ResizeObserver` updates dynamic content heights and widths, and
-tracks ancestor and preceding sibling sizes that can move the container. Scoped
-`MutationObserver` subscriptions refresh these observations when the surrounding
-DOM structure or relevant classes/styles change. No continuous polling is used.
+tracks ancestor and preceding sibling sizes that can move the container. Shared,
+scoped `MutationObserver` subscriptions refresh these observations when the surrounding
+DOM structure or relevant classes/styles change. Observers and global scroll/resize
+listeners are shared across containers. No continuous polling is used.
 Without `ResizeObserver`, measurements update on scroll, window resize and component
 commits. Native browser scroll anchoring can move the viewport when content above
 it changes; sticky positions follow the resulting viewport.
@@ -210,15 +211,17 @@ it changes; sticky positions follow the resulting viewport.
 Wrapper padding, borders and `box-sizing` are accounted for when preserving the
 placeholder and content width. Definite inline heights are retained. Fixed headers
 also follow horizontal scrolling. Per-item layout metrics are cached and invalidated
-by observed dimension changes, window resize, relevant DOM changes and React commits. Inactive or
-fully replaced headers do not have their content heights measured during scrolling.
-`onStickyItemsHeightChange` reports the final total once per animation frame when
-it changes, including zero when no items remain sticky. It does not emit transient
+by observed dimension changes, window resize, relevant DOM changes and React
+commits. Inactive or fully replaced headers do not have their content heights measured during scrolling.
+`onStickyItemsHeightChange` reports the final total once per animation frame, after
+all scheduled containers have applied their styles, when it changes, including zero when no items remain sticky. It does not emit transient
 per-item totals or callbacks after the container unmounts.
 
 ## Performance
 
-Updates are coalesced per container and inactive content heights are not measured.
+Scheduled containers share one animation frame. Their geometry reads finish before
+any sticky styles are written, and unchanged layouts skip repeated style handling.
+Inactive content heights are not measured.
 Prefer grouping related sections in one container rather than mounting a container
 for every row. Large numbers of simultaneously stacked headers still require
 per-frame geometry reads. See the [performance audit](docs/performance.md) for

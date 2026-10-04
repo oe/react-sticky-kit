@@ -2,6 +2,8 @@ import React, { useRef, useEffect, useCallback, useMemo } from 'react';
 import { StickyGroupContext, type IStickyItemHandle, MIN_BASE_Z_INDEX, DEFAULT_BASE_Z_INDEX } from './context.js';
 import './style.scss';
 import { observeLayoutChanges } from './layout-observer.js';
+import { observeResize } from './resize-observer.js';
+import { subscribeUpdates } from './scheduler.js';
 
 export type { IStickyMode } from './context.js';
 export * from './sticky-item.js';
@@ -41,65 +43,66 @@ export function StickyContainer({ children, offsetTop = 0, baseZIndex,
   onStickyItemsHeightChange, defaultMode = 'replace', constraint, className, ...rest
 }: IStickyContainerProps): React.ReactElement<any, any> { // eslint-disable-line @typescript-eslint/no-explicit-any -- Preserve the existing JSX.Element return shape.
   const containerRef = useRef<HTMLDivElement>(null);
-  const itemsRef = useRef<IStickyItemHandle[]>([]);
+  const itemsRef = useRef(new Set<IStickyItemHandle>());
+  const registeredItemsRef = useRef<IStickyItemHandle[] | null>(null);
   const handlesRef = useRef(new Map<Element, IStickyItemHandle>());
   const stickyRef = useRef(false);
-  const rafId = useRef<number | null>(null);
-  const observerRef = useRef<ResizeObserver | null>(null);
-  const activeRef = useRef(false);
+  const updatesRef = useRef<ReturnType<typeof subscribeUpdates> | null>(null);
+  const observationsRef = useRef(new Map<Element, () => void>());
   const heightRef = useRef(0);
   const optionsRef = useRef({ offsetTop, constraint, onStickyItemsHeightChange });
 
-  const scheduleUpdate = useCallback(() => {
-    if (!activeRef.current || rafId.current !== null) return;
-    rafId.current = requestAnimationFrame(() => {
-      rafId.current = null;
-      const container = containerRef.current;
-      if (!activeRef.current || !container) return;
-      const options = optionsRef.current;
-      const rect = container.getBoundingClientRect();
-      const canSticky = options.constraint === 'none' ||
-        (rect.top <= options.offsetTop && rect.bottom >= options.offsetTop);
+  const scheduleUpdate = useCallback(() => updatesRef.current?.schedule(), []);
 
-      // Offscreen containers need only one rectangle read, regardless of item count.
-      if (!canSticky) {
-        if (stickyRef.current) {
-          container.classList.remove('can-sticky');
-          for (const item of itemsRef.current) item.apply(null);
-          stickyRef.current = false;
-        }
-        if (heightRef.current !== 0) {
-          heightRef.current = 0;
-          options.onStickyItemsHeightChange?.(0);
-        }
-        return;
+  const readLayout = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const options = optionsRef.current;
+    const rect = container.getBoundingClientRect();
+    const canSticky = options.constraint === 'none' ||
+      (rect.top <= options.offsetTop && rect.bottom >= options.offsetTop);
+
+    // Offscreen containers need only one rectangle read, regardless of item count.
+    if (!canSticky) return () => {
+      if (stickyRef.current) {
+        container.classList.remove('can-sticky');
+        for (const item of itemsRef.current) item.apply(null);
+        stickyRef.current = false;
       }
+      if (heightRef.current !== 0) {
+        heightRef.current = 0;
+        return () => options.onStickyItemsHeightChange?.(0);
+      }
+    };
 
-      // Read all geometry before applying styles; sort cached rectangles, including reorders.
-      const measurements = itemsRef.current.map(item => ({
-        item, rect: item.el.getBoundingClientRect(),
-      })).sort((a, b) => {
-        const difference = a.rect.top - b.rect.top;
-        if (difference !== 0) return difference;
-        const position = a.item.el.compareDocumentPosition(b.item.el);
-        return position & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
-      });
-      let offset = options.offsetTop;
-      let totalHeight = 0;
-      const plans = measurements.map(({ item, rect: itemRect }, index) => {
-        if (itemRect.top > offset) return null;
-        const nextTop = measurements[index + 1]?.rect.top;
-        if (item.mode === 'replace' && nextTop !== undefined && nextTop < offset) return null;
-        // Only eligible contents need measuring; all reads still precede every write.
-        const dimensions = item.measure(itemRect);
-        const top = item.mode === 'replace' && nextTop !== undefined ?
-          Math.min(offset, nextTop - dimensions.height) : offset;
-        totalHeight += dimensions.height;
-        if (item.mode === 'stack') offset += dimensions.height;
-        return { ...dimensions, top, index };
-      });
-      const correction = options.constraint === 'none' ? 0 :
-        Math.min(0, rect.bottom - options.offsetTop - totalHeight);
+    // Read all geometry before applying styles; sort cached rectangles, including reorders.
+    // Cache registration only; geometry and visual order remain fresh every frame.
+    const registeredItems = registeredItemsRef.current ??= [...itemsRef.current];
+    const measurements = registeredItems.map(item => ({
+      item, rect: item.el.getBoundingClientRect(),
+    })).sort((a, b) => {
+      const difference = a.rect.top - b.rect.top;
+      if (difference !== 0) return difference;
+      const position = a.item.el.compareDocumentPosition(b.item.el);
+      return position & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+    });
+    let offset = options.offsetTop;
+    let totalHeight = 0;
+    const plans = measurements.map(({ item, rect: itemRect }, index) => {
+      if (itemRect.top > offset) return null;
+      const nextTop = measurements[index + 1]?.rect.top;
+      if (item.mode === 'replace' && nextTop !== undefined && nextTop < offset) return null;
+      // Only eligible contents need measuring; all reads still precede every write.
+      const dimensions = item.measure(itemRect);
+      const top = item.mode === 'replace' && nextTop !== undefined ?
+        Math.min(offset, nextTop - dimensions.height) : offset;
+      totalHeight += dimensions.height;
+      if (item.mode === 'stack') offset += dimensions.height;
+      return { ...dimensions, top, index };
+    });
+    const correction = options.constraint === 'none' ? 0 :
+      Math.min(0, rect.bottom - options.offsetTop - totalHeight);
+    return () => {
       stickyRef.current = plans.some(plan => plan !== null);
       container.classList.toggle('can-sticky', stickyRef.current);
       measurements.forEach(({ item }, index) => {
@@ -109,69 +112,67 @@ export function StickyContainer({ children, offsetTop = 0, baseZIndex,
       });
       if (heightRef.current !== totalHeight) {
         heightRef.current = totalHeight;
-        options.onStickyItemsHeightChange?.(totalHeight);
+        return () => options.onStickyItemsHeightChange?.(totalHeight);
       }
-    });
+    };
+  }, []);
+
+  const onResize = useCallback((entries: ResizeObserverEntry[]) => {
+    for (const entry of entries) handlesRef.current.get(entry.target)?.invalidate();
+    scheduleUpdate();
+  }, [scheduleUpdate]);
+  const invalidate = useCallback(() => {
+    for (const item of itemsRef.current) item.invalidate();
   }, []);
 
   const register = useCallback((item: IStickyItemHandle) => {
-    itemsRef.current.push(item);
+    itemsRef.current.add(item);
+    registeredItemsRef.current = null;
     handlesRef.current.set(item.el, item);
     handlesRef.current.set(item.content, item);
-    observerRef.current?.observe(item.el);
-    observerRef.current?.observe(item.content);
+    if (updatesRef.current) {
+      observationsRef.current.set(item.el, observeResize(item.el, onResize));
+      observationsRef.current.set(item.content, observeResize(item.content, onResize));
+    }
     scheduleUpdate();
     return () => {
-      observerRef.current?.unobserve(item.el);
-      observerRef.current?.unobserve(item.content);
+      observationsRef.current.get(item.el)?.();
+      observationsRef.current.get(item.content)?.();
+      observationsRef.current.delete(item.el);
+      observationsRef.current.delete(item.content);
       handlesRef.current.delete(item.el);
       handlesRef.current.delete(item.content);
-      const index = itemsRef.current.indexOf(item);
-      if (index !== -1) itemsRef.current.splice(index, 1);
+      itemsRef.current.delete(item);
+      registeredItemsRef.current = null;
       scheduleUpdate();
     };
-  }, [scheduleUpdate]);
+  }, [scheduleUpdate, onResize]);
 
   useEffect(() => {
-    activeRef.current = true;
+    updatesRef.current = subscribeUpdates(readLayout, invalidate);
     let stopLayoutObserver: (() => void) | undefined;
     if (typeof ResizeObserver !== 'undefined') {
-      const observer = new ResizeObserver(entries => {
-        for (const entry of entries) handlesRef.current.get(entry.target)?.invalidate();
-        scheduleUpdate();
-      });
-      observerRef.current = observer;
       if (containerRef.current) {
-        observer.observe(containerRef.current);
-        stopLayoutObserver = observeLayoutChanges(containerRef.current, observer, () => {
-          for (const item of itemsRef.current) item.invalidate();
+        observationsRef.current.set(containerRef.current, observeResize(containerRef.current, onResize));
+        stopLayoutObserver = observeLayoutChanges(containerRef.current, () => {
+          invalidate();
           scheduleUpdate();
         });
       }
       for (const item of itemsRef.current) {
-        observer.observe(item.el);
-        observer.observe(item.content);
+        observationsRef.current.set(item.el, observeResize(item.el, onResize));
+        observationsRef.current.set(item.content, observeResize(item.content, onResize));
       }
     }
-    const handleResize = () => {
-      // Media queries can change insets without changing any observed border-box size.
-      for (const item of itemsRef.current) item.invalidate();
-      scheduleUpdate();
-    };
-    window.addEventListener('scroll', scheduleUpdate, { passive: true, capture: true });
-    window.addEventListener('resize', handleResize, { passive: true });
-    scheduleUpdate();
+    const observations = observationsRef.current;
     return () => {
-      activeRef.current = false;
-      window.removeEventListener('scroll', scheduleUpdate, true);
-      window.removeEventListener('resize', handleResize);
+      updatesRef.current?.stop();
+      updatesRef.current = null;
       stopLayoutObserver?.();
-      observerRef.current?.disconnect();
-      observerRef.current = null;
-      if (rafId.current !== null) cancelAnimationFrame(rafId.current);
-      rafId.current = null;
+      for (const stop of observations.values()) stop();
+      observations.clear();
     };
-  }, [scheduleUpdate]);
+  }, [readLayout, invalidate, scheduleUpdate, onResize]);
 
   // Every commit can change item order or layout without a scroll event.
   useEffect(() => {

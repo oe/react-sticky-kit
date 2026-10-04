@@ -28,9 +28,11 @@ export function StickyItem({ mode, children, className, ...rest }: IStickyItemPr
     const automaticHeight = normalHeight === undefined || ['auto', 'initial', 'unset', 'revert',
       'revert-layer', 'fit-content', 'min-content', 'max-content'].includes(String(normalHeight));
     let sticky = false;
+    let previousLayout: Parameters<IStickyItemHandle['apply']>[0] = null;
     const reset = () => {
       if (!sticky) return;
       sticky = false;
+      previousLayout = null;
       content.classList.remove('is-sticky');
       wrapper.style.height = originalHeight;
       for (const property of ['top', 'left', 'width', 'z-index']) content.style.removeProperty(property);
@@ -48,6 +50,9 @@ export function StickyItem({ mode, children, className, ...rest }: IStickyItemPr
         return;
       }
       const { top, wrapperHeight, width, left, index } = layout;
+      if (previousLayout && previousLayout.top === top && previousLayout.wrapperHeight === wrapperHeight &&
+        previousLayout.width === width && previousLayout.left === left && previousLayout.index === index) return;
+      previousLayout = layout;
       if (automaticHeight) setStyle(wrapper, 'height', `${wrapperHeight}px`);
       setStyle(content, 'top', `${top}px`);
       setStyle(content, 'left', `${left}px`);
@@ -59,7 +64,7 @@ export function StickyItem({ mode, children, className, ...rest }: IStickyItemPr
         content.classList.add('is-sticky');
       }
     };
-    const handle: IStickyItemHandle = { el: wrapper, content, mode: effectiveMode, apply, measure, invalidate: () => { box = null; } };
+    const handle: IStickyItemHandle = { el: wrapper, content, mode: effectiveMode, apply, measure, invalidate: () => { box = null; previousLayout = null; } };
     measurementRef.current = handle;
     const unregister = register(handle);
     return () => {

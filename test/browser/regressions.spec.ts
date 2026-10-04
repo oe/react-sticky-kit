@@ -1,5 +1,24 @@
 import { test, expect } from '@playwright/test';
 
+test('keeps shared subscriptions working after a sibling container unmounts', async ({ page }) => {
+  await page.goto('/regressions.html?case=multi');
+  await page.getByTestId('first').waitFor();
+  await page.evaluate(() => window.scrollTo(0, 220));
+  await expect(page.getByTestId('first').locator('.oe-sticky-content')).toHaveCSS('position', 'fixed');
+  await page.getByRole('button', { name: 'Remove first' }).click();
+  await expect(page.getByTestId('first-container')).toHaveCount(0);
+  await page.evaluate(() => window.scrollTo(0, 220));
+  const content = page.getByTestId('remaining').locator('.oe-sticky-content');
+  await expect(content).toHaveCSS('position', 'fixed');
+  await page.getByTestId('preceding').evaluate(element => { element.style.height = '500px'; });
+  await expect(content).toHaveCSS('position', 'static');
+  expect(await page.evaluate(() => window.scrollY)).toBe(220);
+  await page.evaluate(() => window.scrollTo(0, 520));
+  await expect(content).toHaveCSS('position', 'fixed');
+  await page.getByTestId('remaining').evaluate(element => { (element.firstElementChild!.firstElementChild as HTMLElement).style.height = '80px'; });
+  await expect(page.getByTestId('remaining')).toHaveCSS('height', '80px');
+});
+
 for (const sizing of ['border-box', 'content-box']) {
   for (const explicitHeight of [false, true]) {
     test(`preserves ${sizing} dimensions with padding and border${explicitHeight ? ' and explicit height' : ''}`, async ({ page }) => {

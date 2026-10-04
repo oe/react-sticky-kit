@@ -1,4 +1,5 @@
-import React, { StrictMode } from 'react';
+import React, { StrictMode, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { act, cleanup, fireEvent, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { StickyContainer, StickyItem } from '../src';
@@ -7,6 +8,7 @@ let frames: Map<number, FrameRequestCallback>;
 let nextId: number;
 let resize: ResizeObserverCallback;
 const disconnect = vi.fn();
+const observe = vi.fn();
 let reads: string[];
 let writes: string[];
 const geometry = new WeakMap<Element, { top?: number; height?: number; width?: number; bottom?: number }>();
@@ -25,6 +27,10 @@ function item(element: HTMLElement) {
   return element.querySelector('.oe-sticky-content') as HTMLElement;
 }
 
+function resizeEntry(target: Element): ResizeObserverEntry {
+  return { target, contentRect: new DOMRect(), borderBoxSize: [], contentBoxSize: [], devicePixelContentBoxSize: [] };
+}
+
 beforeEach(() => {
   frames = new Map();
   nextId = 0;
@@ -38,7 +44,7 @@ beforeEach(() => {
   vi.stubGlobal('cancelAnimationFrame', vi.fn((id: number) => frames.delete(id)));
   vi.stubGlobal('ResizeObserver', class {
     constructor(callback: ResizeObserverCallback) { resize = callback; }
-    observe = vi.fn();
+    observe = observe;
     unobserve = vi.fn();
     disconnect = disconnect;
   });
@@ -53,7 +59,7 @@ beforeEach(() => {
       toJSON: () => ({}) };
   });
 });
-afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); disconnect.mockClear(); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); disconnect.mockClear(); observe.mockClear(); });
 
 describe('sticky layout and lifecycle', () => {
   it('activates on the first frame and preserves custom classes and fractional dimensions', () => {
@@ -83,6 +89,95 @@ describe('sticky layout and lifecycle', () => {
     box(getByTestId('container'), { top: 1000 });
     flush();
     expect(reads).toHaveLength(1);
+  });
+
+  it('shares one frame and reads all containers before writing any sticky styles', () => {
+    render(<><StickyContainer><StickyItem>A</StickyItem></StickyContainer>
+      <StickyContainer><StickyItem>B</StickyItem></StickyContainer></>);
+    const toggle = DOMTokenList.prototype.toggle;
+    vi.spyOn(DOMTokenList.prototype, 'toggle').mockImplementation(function (this: DOMTokenList, ...args: Parameters<typeof toggle>) {
+      writes.push('class');
+      return toggle.apply(this, args);
+    });
+    for (let index = 0; index < 10; index++) fireEvent.scroll(window);
+    expect(frames.size).toBe(1);
+    flush();
+    expect(reads).toHaveLength(6);
+    expect(writes).toHaveLength(2);
+  });
+
+  it('deduplicates resize targets and global events across many containers', async () => {
+    const events = vi.spyOn(window, 'addEventListener');
+    const { unmount } = render(<>{Array.from({ length: 100 }, (_, index) =>
+      <StickyContainer key={index}><StickyItem>{index}</StickyItem></StickyContainer>)}</>);
+    await act(async () => { await Promise.resolve(); });
+    const targets = observe.mock.calls.map(([target]) => target);
+    expect(targets.length).toBe(new Set(targets).size);
+    expect(targets.length).toBeLessThan(310);
+    expect(events.mock.calls.filter(([event]) => event === 'scroll')).toHaveLength(1);
+    expect(events.mock.calls.filter(([event]) => event === 'resize')).toHaveLength(1);
+    expect(frames.size).toBe(1);
+    unmount();
+    expect(disconnect).toHaveBeenCalledTimes(1);
+    expect(frames.size).toBe(0);
+  });
+
+  it('keeps remaining containers subscribed when another container unmounts', () => {
+    function View({ first = true }) {
+      return <>{first && <StickyContainer key="a"><StickyItem>A</StickyItem></StickyContainer>}
+        <StickyContainer key="b"><StickyItem data-testid="remaining">B</StickyItem></StickyContainer></>;
+    }
+    const { getByTestId, rerender } = render(<View />);
+    flush();
+    rerender(<View first={false} />);
+    flush();
+    expect(disconnect).not.toHaveBeenCalled();
+    box(item(getByTestId('remaining')), { height: 75 });
+    resize([resizeEntry(item(getByTestId('remaining')))], {} as ResizeObserver);
+    expect(frames.size).toBe(1);
+    flush();
+    expect(getByTestId('remaining')).toHaveStyle({ height: '75px' });
+  });
+
+  it('updates other containers before reporting a thrown height callback', () => {
+    const failure = new Error('consumer callback failed');
+    const onHeight = vi.fn();
+    const { getByTestId } = render(<>
+      <StickyContainer onStickyItemsHeightChange={() => { throw failure; }}><StickyItem>A</StickyItem></StickyContainer>
+      <StickyContainer onStickyItemsHeightChange={onHeight}><StickyItem data-testid="b">B</StickyItem></StickyContainer>
+    </>);
+    expect(flush).toThrow(failure);
+    expect(item(getByTestId('b'))).toHaveClass('is-sticky');
+    expect(onHeight).toHaveBeenCalledWith(40);
+  });
+
+  it('notifies consumers only after every container has applied its layout', () => {
+    const onHeight = vi.fn(() => {
+      expect(item(getByTestId('b'))).toHaveClass('is-sticky');
+    });
+    const { getByTestId } = render(<>
+      <StickyContainer onStickyItemsHeightChange={onHeight}><StickyItem>A</StickyItem></StickyContainer>
+      <StickyContainer><StickyItem data-testid="b">B</StickyItem></StickyContainer>
+    </>);
+    flush();
+    expect(onHeight).toHaveBeenCalledWith(40);
+  });
+
+  it('skips a queued height notification if another consumer synchronously unmounts its container', () => {
+    const onHeight = vi.fn();
+    function View() {
+      const [visible, setVisible] = useState(true);
+      return <>
+        <StickyContainer onStickyItemsHeightChange={() => flushSync(() => setVisible(false))}><StickyItem>A</StickyItem></StickyContainer>
+        {visible && <StickyContainer onStickyItemsHeightChange={onHeight}><StickyItem data-testid="b">B</StickyItem></StickyContainer>}
+      </>;
+    }
+    const { queryByTestId } = render(<View />);
+    flush();
+    expect(queryByTestId('b')).toBeNull();
+    expect(onHeight).not.toHaveBeenCalled();
+    flush();
+    expect(onHeight).not.toHaveBeenCalled();
   });
 
   it('only measures the eligible replacement header, even with many passed and future headers', () => {
@@ -144,7 +239,7 @@ describe('sticky layout and lifecycle', () => {
     flush();
     expect(onHeight.mock.calls).toEqual([[80]]);
     box(item(getByTestId('a')), { height: 75 });
-    resize([], {} as ResizeObserver); flush();
+    resize([resizeEntry(item(getByTestId('a')))], {} as ResizeObserver); flush();
     expect(getByTestId('a')).toHaveStyle({ height: '75px' });
     expect(item(getByTestId('b'))).toHaveStyle({ top: '75px' });
     expect(onHeight.mock.calls).toEqual([[80], [115]]);
@@ -229,7 +324,7 @@ describe('sticky layout and lifecycle', () => {
     expect(onHeight).not.toHaveBeenCalled();
   });
 
-  it('disconnects layout mutation observers under StrictMode and unmount', () => {
+  it('disconnects layout mutation observers under StrictMode and unmount', async () => {
     const observers: { active: boolean }[] = [];
     vi.stubGlobal('MutationObserver', class {
       active = false;
@@ -238,6 +333,7 @@ describe('sticky layout and lifecycle', () => {
       disconnect() { this.active = false; }
     });
     const { unmount } = render(<StrictMode><StickyContainer><StickyItem>A</StickyItem></StickyContainer></StrictMode>);
+    await act(async () => { await Promise.resolve(); });
     expect(observers.filter(observer => observer.active)).toHaveLength(1);
     unmount();
     expect(observers.filter(observer => observer.active)).toHaveLength(0);
