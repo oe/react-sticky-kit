@@ -190,6 +190,24 @@ describe('sticky layout and lifecycle', () => {
     expect(onHeight.mock.calls).toEqual([[40], [0]]);
   });
 
+  it('recalculates the remaining stack when a middle item is removed', () => {
+    const onHeight = vi.fn();
+    function View({ keys }: { keys: string[] }) {
+      return <StickyContainer defaultMode="stack" onStickyItemsHeightChange={onHeight}>
+        {keys.map(key => <StickyItem key={key} data-testid={key}>{key}</StickyItem>)}
+      </StickyContainer>;
+    }
+    const { getByTestId, queryByTestId, rerender } = render(<View keys={['a', 'b', 'c']} />);
+    flush();
+    rerender(<View keys={['a', 'c']} />);
+    reads = [];
+    flush();
+    expect(queryByTestId('b')).toBeNull();
+    expect(reads).toHaveLength(5);
+    expect(item(getByTestId('c'))).toHaveStyle({ top: '40px', zIndex: '201' });
+    expect(onHeight.mock.calls).toEqual([[120], [80]]);
+  });
+
   it('restores the latest user height after a sticky style prop changes', () => {
     const { getByTestId, rerender } = render(<StickyContainer><StickyItem data-testid="a" style={{ height: 60 }}>A</StickyItem></StickyContainer>);
     flush();

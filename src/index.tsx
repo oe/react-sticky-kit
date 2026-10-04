@@ -126,7 +126,8 @@ export function StickyContainer({ children, offsetTop = 0, baseZIndex,
       observerRef.current?.unobserve(item.content);
       handlesRef.current.delete(item.el);
       handlesRef.current.delete(item.content);
-      itemsRef.current = itemsRef.current.filter(existing => existing !== item);
+      const index = itemsRef.current.indexOf(item);
+      if (index !== -1) itemsRef.current.splice(index, 1);
       scheduleUpdate();
     };
   }, [scheduleUpdate]);
@@ -152,13 +153,18 @@ export function StickyContainer({ children, offsetTop = 0, baseZIndex,
         observer.observe(item.content);
       }
     }
+    const handleResize = () => {
+      // Media queries can change insets without changing any observed border-box size.
+      for (const item of itemsRef.current) item.invalidate();
+      scheduleUpdate();
+    };
     window.addEventListener('scroll', scheduleUpdate, { passive: true, capture: true });
-    window.addEventListener('resize', scheduleUpdate, { passive: true });
+    window.addEventListener('resize', handleResize, { passive: true });
     scheduleUpdate();
     return () => {
       activeRef.current = false;
       window.removeEventListener('scroll', scheduleUpdate, true);
-      window.removeEventListener('resize', scheduleUpdate);
+      window.removeEventListener('resize', handleResize);
       stopLayoutObserver?.();
       observerRef.current?.disconnect();
       observerRef.current = null;

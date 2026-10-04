@@ -59,6 +59,21 @@ test('keeps a fixed header aligned during horizontal element scrolling', async (
   await expect(content).toHaveCSS('left', '0px');
 });
 
+test('refreshes cached insets across a media query even when item dimensions stay unchanged', async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 720 });
+  await page.goto('/regressions.html?case=box');
+  await page.getByTestId('item').waitFor();
+  await page.addStyleTag({ content: '@media (max-width: 900px) { .oe-sticky-item { padding-left: 40px !important; padding-right: 0 !important; } }' });
+  await page.evaluate(() => window.scrollTo(0, 220));
+  const content = page.getByTestId('item').locator('.oe-sticky-content');
+  await expect(content).toHaveCSS('left', '25px');
+  await page.setViewportSize({ width: 800, height: 720 });
+  await expect(content).toHaveCSS('left', '45px');
+  await expect(content).toHaveCSS('width', '350px');
+  await page.setViewportSize({ width: 1200, height: 720 });
+  await expect(content).toHaveCSS('left', '25px');
+});
+
 for (const fixedParent of [false, true]) {
   test(`updates when preceding content changes without scrolling${fixedParent ? ', with a fixed-height parent' : ''}`, async ({ page }) => {
     await page.goto(`/regressions.html?case=shift${fixedParent ? '&fixed-parent' : ''}`);

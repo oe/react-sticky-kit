@@ -210,11 +210,19 @@ it changes; sticky positions follow the resulting viewport.
 Wrapper padding, borders and `box-sizing` are accounted for when preserving the
 placeholder and content width. Definite inline heights are retained. Fixed headers
 also follow horizontal scrolling. Per-item layout metrics are cached and invalidated
-by observed dimension changes, relevant DOM changes and React commits. Inactive or
+by observed dimension changes, window resize, relevant DOM changes and React commits. Inactive or
 fully replaced headers do not have their content heights measured during scrolling.
 `onStickyItemsHeightChange` reports the final total once per animation frame when
 it changes, including zero when no items remain sticky. It does not emit transient
 per-item totals or callbacks after the container unmounts.
+
+## Performance
+
+Updates are coalesced per container and inactive content heights are not measured.
+Prefer grouping related sections in one container rather than mounting a container
+for every row. Large numbers of simultaneously stacked headers still require
+per-frame geometry reads. See the [performance audit](docs/performance.md) for
+stress-test findings and limitations.
 
 ## Development
 
