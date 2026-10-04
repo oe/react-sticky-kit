@@ -1,21 +1,8 @@
-
-.oe-sticky {
-  &-container {
-    position: relative;
-
-    &.can-sticky {
-      .oe-sticky-content.is-sticky {
-        position: fixed;
-      }
-    }
-  }
-
-  &-item {
-    position: relative;
-  }
-
-  &-content {
-    will-change: top, position;
-  }  
+.oe-sticky-container,
+.oe-sticky-item {
+  position: relative;
 }
 
+.oe-sticky-content.is-sticky {
+  position: fixed;
+}

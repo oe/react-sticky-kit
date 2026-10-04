@@ -31,7 +31,7 @@ A lightweight, flexible React sticky container and item component library. Easil
 - 📦 Simple API: `<StickyContainer>` and `<StickyItem>`
 - 🧩 Supports `replace`, `stack`, and `none` sticky modes
 - 🏷️ Customizable offset, z-index (baseZIndex), and sticky logic
-- 🖥️ Flexible reference containers (window, DOM elements, refs)
+- 🖥️ Viewport-relative sticky offsets, including updates on nested scroll events
 - 🔄 Supports SSR/SSG (Next.js, Gatsby, Astro, etc.)
 - 🧪 Handles edge cases: empty sections, dynamic heights, zero-height headers, long headers, etc.
 - ⚡️ Written in TypeScript, fully typed
@@ -84,7 +84,7 @@ export default function Example() {
 | `baseZIndex`                | `number`                                             | `200`       | Base z-index for sticky items. Should be greater than the number of sticky items.            |
 |                             |                                                      |             | In `replace` mode, z-index = baseZIndex - index; in `stack` mode, z-index = baseZIndex + index. |
 | `onStickyItemsHeightChange` | `(height: number) => void`                          |             | Callback when total sticky height changes                                                   |
-| `constraint`                | `'none'`                                             |             | Define the constraint for sticky behavior. 'none' = no constraints (CSS-like behavior) |
+| `constraint`                | `'none'`                                             |             | Define the constraint for sticky behavior. 'none' = no container boundary |
 
 ### `<StickyItem />`
 | Prop    | Type                                 | Default | Description                                 |
@@ -113,14 +113,9 @@ function Example() {
         <div>Content...</div>
       </StickyContainer>
       
-      {/* 2. No constraints (like CSS position:sticky) */}
+      {/* 2. No container boundary */}
       <StickyContainer constraint="none">
-        <StickyItem><div>Always sticky like CSS position:sticky</div></StickyItem>
-        <div>Content...</div>
-      </StickyContainer>
-    </div>
-  );
-}
+        <StickyItem><div>Sticky even after the container leaves</div></StickyItem>
         <div>Content...</div>
       </StickyContainer>
     </div>
@@ -130,7 +125,7 @@ function Example() {
 
 ### Special behavior of `constraint="none"`
 
-When you set `constraint="none"`, the sticky items will always stick when they reach the top of the viewport, regardless of their parent container's visibility. This exactly matches the behavior of native CSS `position: sticky`.
+When you set `constraint="none"`, the sticky items will always stick when they reach the top of the viewport, regardless of their parent container's visibility. Offsets remain relative to the viewport; this differs from native CSS `position: sticky`, which is constrained by its scrolling ancestor.
 
 In contrast, the default behavior (without specifying a constraint) only makes items sticky when their parent container is visible in the viewport.
 
@@ -176,25 +171,58 @@ export default function Home() {
 
 ### Astro Example
 
+Create a React component containing both `StickyContainer` and `StickyItem`, then
+hydrate it from Astro:
+
 ```astro
 ---
-// src/pages/index.astro
-import { StickyContainer, StickyItem } from 'react-sticky-kit'
-import 'react-sticky-kit/dist/style.css'
+import StickyLayout from '../components/StickyLayout.tsx'
+import 'react-sticky-kit/style'
 ---
-
-<html>
-  <head>...</head>
-  <body>
-    <StickyContainer client:load>
-      <StickyItem>
-        <header>Sticky Header</header>
-      </StickyItem>
-      <div>Content...</div>
-    </StickyContainer>
-  </body>
-</html>
+<StickyLayout client:load />
 ```
+
+## Compatibility and updates
+
+React 17 and later are supported. Import the stylesheet explicitly, using either
+`react-sticky-kit/style` or `react-sticky-kit/dist/style.css`. ESM, CommonJS and the
+UMD browser build are available; UMD requires a global `React`.
+
+The built entry points include `"use client"` for Next.js App Router. Pages Router
+and server rendering remain supported; sticky layout is applied after mounting.
+For Astro, wrap the sticky layout in a React component and hydrate that component
+as a single island.
+
+Sticky offsets use the viewport, even when an event comes from a nested scrolling
+element. Ancestor transforms and overflow clipping can affect fixed positioning;
+use native CSS `position: sticky` if you need offsets relative to a scrolling ancestor.
+
+When available, `ResizeObserver` updates dynamic content heights and widths. Without
+it, measurements update on scroll, window resize and component commits.
+`onStickyItemsHeightChange` reports the final total once per animation frame when
+it changes, including zero when no items remain sticky. It does not emit transient
+per-item totals or callbacks after the container unmounts.
+
+## Development
+
+Use Node.js 22.22.2+ or 24.15.0+ and the pnpm version pinned in `package.json`.
+The development tools require these versions; the published library keeps its
+React 17+ peer dependency range and targets ES2018.
+
+```bash
+pnpm install --frozen-lockfile
+pnpm type-check
+pnpm lint
+pnpm test
+pnpm build
+pnpm check:package
+pnpm check:compatibility # installs the tarball with React 17, 18 and 19
+pnpm exec playwright install --with-deps chromium firefox webkit
+pnpm test:browser
+```
+
+TypeScript 6 is used for development while the ESLint TypeScript plugin supports
+versions below 6.1. Generated declarations use the existing public component API.
 
 ## Publish steps
 

@@ -75,7 +75,6 @@ export default function MixedModeDemo() {
             <StickyItem mode={section.dynamic ? dynamicMode : (section.mode as IStickyMode)}>
               <div
                 style={{
-                  // @ts-expect-error ignore headerStyle type error
                   background: '#e0eaff',
                   padding: '8px 16px',
                   fontWeight: 'bold',
