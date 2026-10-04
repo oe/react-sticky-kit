@@ -153,7 +153,7 @@ React Sticky Kit supports Server-Side Rendering (SSR) and Static Site Generation
 ### Next.js Example
 
 ```tsx
-// pages/index.tsx
+// app/page.tsx (Next.js App Router)
 import { StickyContainer, StickyItem } from 'react-sticky-kit'
 import 'react-sticky-kit/dist/style.css'
 
@@ -168,6 +168,8 @@ export default function Home() {
   )
 }
 ```
+
+For Pages Router, import the global stylesheet from `pages/_app.tsx`.
 
 ### Astro Example
 
