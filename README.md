@@ -24,55 +24,85 @@
   </a>
 </p>
 
-A lightweight, flexible React sticky container and item component library. Easily create sticky headers, sections, and advanced sticky layouts with support for multiple modes and edge cases.
+Coordinate multiple sticky section headers in React. Stack headers using their actual
+heights, replace a section header as the next one arrives, or mix both behaviors
+under a shared viewport offset.
 
-## Features
+**Use native CSS `position: sticky` for a single header or a straightforward grouped
+list.** Choose React Sticky Kit when you need dynamic-height stacking, mixed
+stack/replace behavior, or the total sticky height without maintaining your own
+measurement and scroll logic.
 
-- 📦 Simple API: `<StickyContainer>` and `<StickyItem>`
-- 🧩 Supports `replace`, `stack`, and `none` sticky modes
-- 🏷️ Customizable offset, z-index (baseZIndex), and sticky logic
-- 🖥️ Viewport-relative sticky offsets, including updates on nested scroll events
-- 🔄 Supports SSR/SSG (Next.js, Gatsby, Astro, etc.)
-- 🧪 Handles edge cases: empty sections, dynamic heights, zero-height headers, long headers, etc.
-- ⚡️ Written in TypeScript, fully typed
-- 🧪 Includes demo pages for real-world scenarios
+## See the behavior
+
+| Replace section headings | Stack reached headings |
+| --- | --- |
+| ![Replacing section headers while scrolling](docs/assets/replace.gif) | ![Stacking section headers while scrolling](docs/assets/stack.gif) |
+
+- **Replace:** an alphabetical contact list updates its section heading as you scroll.
+- **Stack:** previously reached headings accumulate below the shared offset; their
+  heights are measured automatically, including when content changes.
+- **Mixed:** keep a page title stacked while section headings replace below it.
+
+[Open the existing contact-list sandbox](https://codesandbox.io/p/sandbox/dreamy-hofstadter-v9dzfz).
+The repository demo also includes mixed modes, dynamic heights, nested groups and
+container boundaries; see [running the demo](#run-the-demo).
 
 ## Installation
 
 ```bash
 npm install react-sticky-kit
-# or
-yarn add react-sticky-kit
-# or
-pnpm add react-sticky-kit
+# or: pnpm add react-sticky-kit
 ```
 
-## Demo
-- [Apple iOS Contact App](https://codesandbox.io/p/sandbox/dreamy-hofstadter-v9dzfz)
+## Quick start: replacing section headers
 
-## Usage
+Import the stylesheet once. Give sections enough content to scroll; headers replace
+one another within the container's boundary.
 
 ```tsx
 import { StickyContainer, StickyItem } from 'react-sticky-kit';
-// !! Import styles for sticky components
-import 'react-sticky-kit/dist/style.css';
-// or `import 'react-sticky-kit/style';` for more clean style path(require modern bundler tools)
+import 'react-sticky-kit/style';
 
-export default function Example() {
+export default function Sections() {
   return (
-    <StickyContainer offsetTop={48} defaultMode="stack" baseZIndex={300}>
-      <StickyItem>
-        <div>Sticky Header</div>
-      </StickyItem>
-      <div>Content...</div>
-      <StickyItem mode="replace">
-        <div>Another Sticky Header (replace mode)</div>
-      </StickyItem>
-      <div>More Content...</div>
+    <StickyContainer defaultMode="replace" offsetTop={48}>
+      <StickyItem><h2 style={{ margin: 0, padding: 12, background: '#fff' }}>Overview</h2></StickyItem>
+      <section style={{ minHeight: 600 }}>Overview content</section>
+      <StickyItem><h2 style={{ margin: 0, padding: 12, background: '#fff' }}>Details</h2></StickyItem>
+      <section style={{ minHeight: 600 }}>Details content</section>
     </StickyContainer>
   );
 }
 ```
+
+Change `defaultMode` to `"stack"` to retain previously reached headings. To keep a
+page title above replacing section headings, add a first `<StickyItem mode="stack">`.
+Offsets are relative to the **viewport**, including when scrolling an inner element.
+For offsets relative to a scrollable panel, prefer native CSS sticky positioning.
+
+## Which approach should I choose?
+
+| Need | Start with |
+| --- | --- |
+| A single sticky navigation bar or simple grouped list | Native CSS `position: sticky` |
+| A sidebar taller than the viewport | A sidebar-focused solution such as `react-sticky-box` |
+| Dynamic-height headers that stack automatically | React Sticky Kit, `stack` mode |
+| A persistent title above replacing section headings | React Sticky Kit, mixed modes |
+| The current total sticky height | `onStickyItemsHeightChange` |
+| Table columns, built-in virtualization, or hide-on-scroll navigation | A solution designed for that specific interaction |
+
+React Sticky Kit uses fixed positioning while active. It is not a drop-in
+replacement for scroll-container-relative sticky behavior. Ancestor transforms
+and overflow clipping can affect fixed positioning.
+
+React 17/18/19, SSR and TypeScript 5 NodeNext consumers are covered by package
+checks. The ESM artifact is approximately **3.48 kB gzip**, excluding React and CSS;
+there are no additional runtime dependencies. See the
+[performance audit](docs/performance.md) for methods and tradeoffs.
+
+For practical examples and existing-library migration, see the
+[patterns and migration guide](docs/patterns-and-migration.md).
 
 ## Props
 
@@ -129,7 +159,11 @@ When you set `constraint="none"`, the sticky items will always stick when they r
 
 In contrast, the default behavior (without specifying a constraint) only makes items sticky when their parent container is visible in the viewport.
 
-## Demo
+## Run the demo
+
+The demo builds as a standalone static site with `pnpm build:demo`. Its relative
+asset paths work when hosted under a repository subdirectory.
+See [deployment instructions](docs/demo-deployment.md) for GitHub Pages setup.
 
 Run the demo locally:
 

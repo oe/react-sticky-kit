@@ -27,6 +27,7 @@ jobs:
       - run: pnpm lint
       - run: pnpm test
       - run: pnpm build
+      - run: pnpm build:demo
       - run: pnpm check:package
       - run: pnpm check:compatibility
 

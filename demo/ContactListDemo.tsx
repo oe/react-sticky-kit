@@ -5,7 +5,7 @@ import { StickyContainer, StickyItem } from '../src';
 const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const contacts = letters.map(letter => ({
   letter,
-  people: Array.from({ length: Math.floor(Math.random() * 8 + 3) }, (_, i) => `${letter} Name ${i + 1}`),
+  people: Array.from({ length: 6 }, (_, i) => `${letter} Name ${i + 1}`),
 }));
 
 export default function ContactListDemo() {
