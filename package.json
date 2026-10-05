@@ -1,6 +1,6 @@
 {
   "name": "react-sticky-kit",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "type": "module",
   "description": "React components for stacked and replacing sticky section headers, with automatic height coordination and viewport offsets.",
   "keywords": [
