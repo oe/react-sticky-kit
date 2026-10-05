@@ -14,6 +14,12 @@ export interface IStickyContainerProps extends React.HTMLAttributes<HTMLDivEleme
    * The offset from the top of the viewport for sticky elements. Default is 0.
    */
   offsetTop?: number;
+  /** Space below oversized groups when overflowBehavior="scroll". */
+  offsetBottom?: number;
+  /** Preserve pinning (default), or scroll oversized active groups as one unit. */
+  overflowBehavior?: 'pin' | 'scroll';
+  /** Opt into native sticky for eligible single, direct-child items. Defaults to fixed. */
+  positionStrategy?: 'fixed' | 'auto';
   /**
    * base z-index for sticky items. Default is 200. minimum z-index is 20.
    * * - When using the `replace` mode, the z-index of a `StickyItem` is calculated as `baseZIndex` minus its index within the container.
@@ -39,7 +45,7 @@ export interface IStickyContainerProps extends React.HTMLAttributes<HTMLDivEleme
   constraint?: 'none';
 }
 
-export function StickyContainer({ children, offsetTop = 0, baseZIndex,
+export function StickyContainer({ children, offsetTop = 0, offsetBottom = 0, overflowBehavior = 'pin', positionStrategy = 'fixed', baseZIndex,
   onStickyItemsHeightChange, defaultMode = 'replace', constraint, className, ...rest
 }: IStickyContainerProps): React.ReactElement<any, any> { // eslint-disable-line @typescript-eslint/no-explicit-any -- Preserve the existing JSX.Element return shape.
   const containerRef = useRef<HTMLDivElement>(null);
@@ -47,10 +53,13 @@ export function StickyContainer({ children, offsetTop = 0, baseZIndex,
   const registeredItemsRef = useRef<IStickyItemHandle[] | null>(null);
   const handlesRef = useRef(new Map<Element, IStickyItemHandle>());
   const stickyRef = useRef(false);
+  const scrollingItemsRef = useRef(0);
+  const nativeSafeRef = useRef<boolean | null>(null);
   const updatesRef = useRef<ReturnType<typeof subscribeUpdates> | null>(null);
   const observationsRef = useRef(new Map<Element, () => void>());
   const heightRef = useRef(0);
-  const optionsRef = useRef({ offsetTop, constraint, onStickyItemsHeightChange });
+  const overflowRef = useRef<{ scrollY: number; shift: number; maximum: number } | null>(null);
+  const optionsRef = useRef({ offsetTop, offsetBottom, overflowBehavior, positionStrategy, baseZIndex, constraint, onStickyItemsHeightChange });
 
   const scheduleUpdate = useCallback(() => updatesRef.current?.schedule(), []);
 
@@ -62,9 +71,35 @@ export function StickyContainer({ children, offsetTop = 0, baseZIndex,
     const canSticky = options.constraint === 'none' ||
       (rect.top <= options.offsetTop && rect.bottom >= options.offsetTop);
 
+    const registeredItems = registeredItemsRef.current ??= [...itemsRef.current];
+    // Native positioning is limited to one direct child; multiple headings still need coordination.
+    const single = registeredItems.length === 1 ? registeredItems[0] : undefined;
+    if (options.positionStrategy === 'auto' && options.constraint !== 'none' && single?.canNative &&
+      typeof ResizeObserver !== 'undefined' &&
+      single.el.parentElement === container && (nativeSafeRef.current ??= hasViewportSticky(container)) && typeof CSS !== 'undefined' && typeof CSS.supports === 'function' && CSS.supports('position', 'sticky')) {
+      const height = single.content.getBoundingClientRect().height;
+      const itemRect = single.el.getBoundingClientRect();
+      if (itemRect.height <= height + 1 && height + options.offsetTop + Math.max(0, options.offsetBottom) <= window.innerHeight) {
+        const total = canSticky && itemRect.top <= options.offsetTop ? height : 0;
+        return () => {
+          updatesRef.current?.setScrollEnabled(Boolean(options.onStickyItemsHeightChange));
+          overflowRef.current = null;
+          stickyRef.current = true;
+          container.classList.remove('can-sticky');
+          single.applyNative(options.offsetTop, options.baseZIndex === undefined ? DEFAULT_BASE_Z_INDEX :
+            Math.max(Number(options.baseZIndex) || 0, MIN_BASE_Z_INDEX));
+          if (heightRef.current !== total) {
+            heightRef.current = total;
+            return () => options.onStickyItemsHeightChange?.(total);
+          }
+        };
+      }
+    }
     // Offscreen containers need only one rectangle read, regardless of item count.
     if (!canSticky) return () => {
-      if (stickyRef.current) {
+      updatesRef.current?.setScrollEnabled(true);
+      overflowRef.current = null;
+      if (stickyRef.current || options.positionStrategy === 'auto') {
         container.classList.remove('can-sticky');
         for (const item of itemsRef.current) item.apply(null);
         stickyRef.current = false;
@@ -77,7 +112,6 @@ export function StickyContainer({ children, offsetTop = 0, baseZIndex,
 
     // Read all geometry before applying styles; sort cached rectangles, including reorders.
     // Cache registration only; geometry and visual order remain fresh every frame.
-    const registeredItems = registeredItemsRef.current ??= [...itemsRef.current];
     const measurements = registeredItems.map(item => ({
       item, rect: item.el.getBoundingClientRect(),
     })).sort((a, b) => {
@@ -86,12 +120,30 @@ export function StickyContainer({ children, offsetTop = 0, baseZIndex,
       const position = a.item.el.compareDocumentPosition(b.item.el);
       return position & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
     });
-    let offset = options.offsetTop;
+    const scrolling = options.overflowBehavior === 'scroll' ||
+      scrollingItemsRef.current > 0;
+    const scrollY = scrolling ? window.scrollY : 0;
+    const previous = scrolling ? overflowRef.current : null;
+    let shift = 0;
+    if (scrolling) {
+      if (previous) shift = Math.max(-previous.maximum, Math.min(0, previous.shift - (scrollY - previous.scrollY)));
+      else {
+        const first = measurements[0];
+        if (first && first.rect.top <= options.offsetTop) {
+          const height = first.item.measure(first.rect).height;
+          const maximum = Math.max(0, height + options.offsetTop + Math.max(0, options.offsetBottom) - window.innerHeight);
+          shift = Math.max(-maximum, Math.min(0, first.rect.top - options.offsetTop));
+        }
+      }
+    }
+    const replaceOnly = scrolling && measurements.every(({ item }) => item.mode === 'replace');
+    let offset = options.offsetTop + shift;
     let totalHeight = 0;
     const plans = measurements.map(({ item, rect: itemRect }, index) => {
-      if (itemRect.top > offset) return null;
+      const activationTop = offset - (replaceOnly ? shift : 0);
+      if (itemRect.top > activationTop) return null;
       const nextTop = measurements[index + 1]?.rect.top;
-      if (item.mode === 'replace' && nextTop !== undefined && nextTop < offset) return null;
+      if (item.mode === 'replace' && nextTop !== undefined && nextTop < activationTop) return null;
       // Only eligible contents need measuring; all reads still precede every write.
       const dimensions = item.measure(itemRect);
       const top = item.mode === 'replace' && nextTop !== undefined ?
@@ -100,9 +152,18 @@ export function StickyContainer({ children, offsetTop = 0, baseZIndex,
       if (item.mode === 'stack') offset += dimensions.height;
       return { ...dimensions, top, index };
     });
+    let overflow: { scrollY: number; shift: number; maximum: number } | null = null;
+    if (scrolling && totalHeight > 0) {
+      const maximum = Math.max(0, totalHeight + options.offsetTop + Math.max(0, options.offsetBottom) - window.innerHeight);
+      const nextShift = Math.max(-maximum, shift);
+      for (const plan of plans) if (plan) plan.top += nextShift - shift;
+      overflow = { scrollY, shift: nextShift, maximum };
+    }
     const correction = options.constraint === 'none' ? 0 :
-      Math.min(0, rect.bottom - options.offsetTop - totalHeight);
+      Math.min(0, rect.bottom - options.offsetTop - totalHeight - (overflow?.shift ?? 0));
     return () => {
+      updatesRef.current?.setScrollEnabled(true);
+      overflowRef.current = overflow;
       stickyRef.current = plans.some(plan => plan !== null);
       container.classList.toggle('can-sticky', stickyRef.current);
       measurements.forEach(({ item }, index) => {
@@ -122,11 +183,13 @@ export function StickyContainer({ children, offsetTop = 0, baseZIndex,
     scheduleUpdate();
   }, [scheduleUpdate]);
   const invalidate = useCallback(() => {
+    nativeSafeRef.current = null;
     for (const item of itemsRef.current) item.invalidate();
   }, []);
 
   const register = useCallback((item: IStickyItemHandle) => {
     itemsRef.current.add(item);
+    if (item.overflowBehavior === 'scroll') scrollingItemsRef.current++;
     registeredItemsRef.current = null;
     handlesRef.current.set(item.el, item);
     handlesRef.current.set(item.content, item);
@@ -143,6 +206,7 @@ export function StickyContainer({ children, offsetTop = 0, baseZIndex,
       handlesRef.current.delete(item.el);
       handlesRef.current.delete(item.content);
       itemsRef.current.delete(item);
+      if (item.overflowBehavior === 'scroll') scrollingItemsRef.current--;
       registeredItemsRef.current = null;
       scheduleUpdate();
     };
@@ -176,7 +240,8 @@ export function StickyContainer({ children, offsetTop = 0, baseZIndex,
 
   // Every commit can change item order or layout without a scroll event.
   useEffect(() => {
-    optionsRef.current = { offsetTop, constraint, onStickyItemsHeightChange };
+    nativeSafeRef.current = null;
+    optionsRef.current = { offsetTop, offsetBottom, overflowBehavior, positionStrategy, baseZIndex, constraint, onStickyItemsHeightChange };
     for (const item of itemsRef.current) item.invalidate();
     scheduleUpdate();
   });
@@ -193,4 +258,12 @@ export function StickyContainer({ children, offsetTop = 0, baseZIndex,
       </div>
     </StickyGroupContext.Provider>
   );
+}
+
+function hasViewportSticky(container: HTMLElement) {
+  for (let node: HTMLElement | null = container; node; node = node.parentElement) {
+    const style = getComputedStyle(node);
+    if (/(auto|scroll|hidden|overlay)/.test(`${style.overflowX} ${style.overflowY}`)) return false;
+  }
+  return true;
 }

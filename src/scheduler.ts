@@ -1,5 +1,5 @@
 type Write = () => (() => void) | void;
-type Client = { read: () => Write | undefined; resize: () => void };
+type Client = { read: () => Write | undefined; resize: () => void; scrollEnabled: boolean };
 const clients = new Set<Client>();
 const pending = new Set<Client>();
 let frame: number | null = null;
@@ -10,7 +10,7 @@ function schedule(client: Client) {
   frame ??= requestAnimationFrame(flush);
 }
 function scroll() {
-  for (const client of clients) schedule(client);
+  for (const client of clients) if (client.scrollEnabled) schedule(client);
 }
 function resize() {
   for (const client of clients) {
@@ -50,7 +50,7 @@ function flush() {
 }
 
 export function subscribeUpdates(read: Client['read'], invalidate: () => void) {
-  const client = { read, resize: invalidate };
+  const client = { read, resize: invalidate, scrollEnabled: true };
   if (!clients.size) {
     window.addEventListener('scroll', scroll, { passive: true, capture: true });
     window.addEventListener('resize', resize, { passive: true });
@@ -59,6 +59,7 @@ export function subscribeUpdates(read: Client['read'], invalidate: () => void) {
   schedule(client);
   return {
     schedule: () => schedule(client),
+    setScrollEnabled: (enabled: boolean) => { client.scrollEnabled = enabled; },
     stop: () => {
       clients.delete(client);
       pending.delete(client);

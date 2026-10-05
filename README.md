@@ -52,6 +52,24 @@ The demo also includes dynamic heights, nested groups and container boundaries.
 To edit an example, use the [contact-list sandbox](https://codesandbox.io/p/sandbox/dreamy-hofstadter-v9dzfz);
 see [running the demo](#run-the-demo) for local development.
 
+## Content taller than the viewport
+
+Keep the existing Container / Item structure and opt into coordinated scrolling:
+
+```tsx
+<StickyContainer defaultMode="stack" overflowBehavior="scroll"
+  offsetTop={16} offsetBottom={16} positionStrategy="auto">
+  <StickyItem><Sidebar /></StickyItem>
+  <main>{content}</main>
+</StickyContainer>
+```
+
+Oversized active items scroll as one group before pinning their top or bottom
+edge. The default behavior remains unchanged. `auto` uses native sticky for
+eligible single short items and falls back to fixed positioning for other cases.
+This is still a viewport-scrolling API, not support for internal scroll frames.
+See [behavior, compatibility checks and measurements](docs/oversized-content.md).
+
 ## Installation
 
 ```bash
@@ -101,7 +119,7 @@ replacement for scroll-container-relative sticky behavior. Ancestor transforms
 and overflow clipping can affect fixed positioning.
 
 React 17/18/19, SSR and TypeScript 5 NodeNext consumers are covered by package
-checks. The ESM artifact is approximately **3.48 kB gzip**, excluding React and CSS;
+checks. The ESM artifact is approximately **4.40 kB gzip**, excluding React and CSS;
 there are no additional runtime dependencies. See the
 [performance audit](docs/performance.md) for methods and tradeoffs.
 
@@ -114,6 +132,9 @@ For practical examples and existing-library migration, see the
 | Prop                        | Type                                                 | Default     | Description                                                                                 |
 |-----------------------------|------------------------------------------------------|-------------|---------------------------------------------------------------------------------------------|
 | `offsetTop`                 | `number`                                             | `0`         | Offset from the top of the viewport                                                         |
+| `offsetBottom` | `number` | `0` | Bottom space reserved for oversized scrolling groups |
+| `overflowBehavior` | `'pin' \| 'scroll'` | `'pin'` | Opt into coordinated scrolling of oversized active items |
+| `positionStrategy` | `'fixed' \| 'auto'` | `'fixed'` | Opt into native sticky for eligible single short items |
 | `defaultMode`               | `'replace' \| 'stack' \| 'none'`                     | `'replace'` | Default sticky mode for all items                                                           |
 | `baseZIndex`                | `number`                                             | `200`       | Base z-index for sticky items. Should be greater than the number of sticky items.            |
 |                             |                                                      |             | In `replace` mode, z-index = baseZIndex - index; in `stack` mode, z-index = baseZIndex + index. |
@@ -124,6 +145,8 @@ For practical examples and existing-library migration, see the
 | Prop    | Type                                 | Default | Description                                 |
 |---------|--------------------------------------|---------|---------------------------------------------|
 | `mode`  | `'replace' \| 'stack' \| 'none'`     |         | Sticky mode for this item (overrides StickyContainer) |
+
+| `overflowBehavior` | `'pin' \| 'scroll'` | `'pin'` | A scroll opt-in enables coordinated overflow behavior for the containing group |
 
 ## Sticky Modes
 - **replace**: Only one sticky item is visible at a time, replacing the previous.

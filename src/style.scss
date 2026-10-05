@@ -6,3 +6,9 @@
 .oe-sticky-content.is-sticky {
   position: fixed;
 }
+
+.oe-sticky-item.is-native-sticky {
+  position: sticky;
+  top: var(--oe-sticky-top);
+  z-index: var(--oe-sticky-z);
+}
