@@ -90,3 +90,27 @@ test('fixed widths follow viewport resize without rounding fractional layout', a
   await page.setViewportSize({ width: 1000, height: 720 });
   await expect(content).toHaveCSS('width', '755px');
 });
+
+test('cached measurement records still follow CSS visual reordering without a React commit', async ({ page }) => {
+  await page.goto('/fixture.html?unconstrained');
+  await page.locator('.oe-sticky-item').first().waitFor();
+  await page.evaluate(() => window.scrollTo(0, 800));
+  const a = page.getByTestId('a').locator('.oe-sticky-content');
+  const b = page.getByTestId('b').locator('.oe-sticky-content');
+  await expect(a).toHaveCSS('top', '0px');
+  await expect(b).toHaveCSS('top', '40px');
+  await page.getByTestId('container').evaluate(container => {
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    (container.querySelector('[data-testid="b"]') as HTMLElement).style.order = '-1';
+  });
+  await page.evaluate(() => window.scrollTo(0, 810));
+  await expect(b).toHaveCSS('top', '0px');
+  await expect(a).toHaveCSS('top', '50px');
+  await page.getByTestId('container').evaluate(container => {
+    (container.querySelector('[data-testid="b"]') as HTMLElement).style.order = '';
+  });
+  await page.evaluate(() => window.scrollTo(0, 820));
+  await expect(a).toHaveCSS('top', '0px');
+  await expect(b).toHaveCSS('top', '40px');
+});

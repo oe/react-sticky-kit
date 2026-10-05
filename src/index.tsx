@@ -52,7 +52,7 @@ export function StickyContainer({ children, offsetTop = 0, offsetBottom = 0, ove
     Math.max(Number(baseZIndex) || 0, MIN_BASE_Z_INDEX);
   const containerRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef(new Set<IStickyItemHandle>());
-  const registeredItemsRef = useRef<IStickyItemHandle[] | null>(null);
+  const measurementsRef = useRef<{ item: IStickyItemHandle; rect: DOMRect }[] | null>(null);
   const handlesRef = useRef(new Map<Element, IStickyItemHandle>());
   const stickyRef = useRef(false);
   const nativeEligibleRef = useRef<boolean | null>(null);
@@ -72,9 +72,9 @@ export function StickyContainer({ children, offsetTop = 0, offsetBottom = 0, ove
     const canSticky = options.constraint === 'none' ||
       (rect.top <= options.offsetTop && rect.bottom >= options.offsetTop);
 
-    const registeredItems = registeredItemsRef.current ??= [...itemsRef.current];
     // Native positioning is limited to one direct child; multiple headings still need coordination.
-    const single = registeredItems.length === 1 ? registeredItems[0] : undefined;
+    const single = options.positionStrategy === 'auto' && nativeEligibleRef.current !== false &&
+      itemsRef.current.size === 1 ? itemsRef.current.values().next().value : undefined;
     if (options.positionStrategy === 'auto' && options.constraint !== 'none' && single?.canNative &&
       single.el.parentElement === container && (nativeEligibleRef.current ??= hasViewportSticky(container, single.el))) {
       const height = single.content.getBoundingClientRect().height;
@@ -100,7 +100,7 @@ export function StickyContainer({ children, offsetTop = 0, offsetBottom = 0, ove
     if (!canSticky) return () => {
       updatesRef.current?.setScrollEnabled(true);
       overflowRef.current = null;
-      if (stickyRef.current || options.positionStrategy === 'auto') {
+      if (stickyRef.current) {
         container.classList.remove('can-sticky');
         for (const item of itemsRef.current) item.apply(null);
         stickyRef.current = false;
@@ -111,11 +111,16 @@ export function StickyContainer({ children, offsetTop = 0, offsetBottom = 0, ove
       }
     };
 
-    // Read all geometry before applying styles; sort cached rectangles, including reorders.
-    // Cache registration only; geometry and visual order remain fresh every frame.
-    const measurements = registeredItems.map(item => ({
-      item, rect: item.el.getBoundingClientRect(),
-    })).sort((a, b) => {
+    // Reuse storage, not geometry: rectangles and visual order stay fresh each frame.
+    let measurements = measurementsRef.current;
+    if (measurements) {
+      for (const entry of measurements) entry.rect = entry.item.el.getBoundingClientRect();
+    } else {
+      measurements = measurementsRef.current = [...itemsRef.current].map(item => ({
+        item, rect: item.el.getBoundingClientRect(),
+      }));
+    }
+    measurements.sort((a, b) => {
       const difference = a.rect.top - b.rect.top;
       if (difference !== 0) return difference;
       const position = a.item.el.compareDocumentPosition(b.item.el);
@@ -193,7 +198,7 @@ export function StickyContainer({ children, offsetTop = 0, offsetBottom = 0, ove
   const register = useCallback((item: IStickyItemHandle) => {
     itemsRef.current.add(item);
     nativeEligibleRef.current = null;
-    registeredItemsRef.current = null;
+    measurementsRef.current = null;
     handlesRef.current.set(item.el, item);
     handlesRef.current.set(item.content, item);
     if (updatesRef.current) {
@@ -210,7 +215,7 @@ export function StickyContainer({ children, offsetTop = 0, offsetBottom = 0, ove
       handlesRef.current.delete(item.content);
       itemsRef.current.delete(item);
       nativeEligibleRef.current = null;
-      registeredItemsRef.current = null;
+      measurementsRef.current = null;
       scheduleUpdate();
     };
   }, [scheduleUpdate, onResize]);

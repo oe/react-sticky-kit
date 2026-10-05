@@ -83,7 +83,7 @@ not equate observer counts to CPU time or memory. Zero geometry reads does not
 mean zero browser layout or paint work. These short-item results do not establish
 that our long-content implementation is faster than Sticky Box.
 
-The project build's ESM gzip grows from 3.48 KB to approximately 4.53 KB, and CSS
+The project build's ESM gzip grows from 3.48 KB to approximately 4.56 KB, and CSS
 from 0.09 KB to 0.14 KB. The feature adds no dependency. It does not achieve a
 smaller bundle than Sticky Box; size remains a tradeoff for the expanded API.
 
@@ -113,3 +113,33 @@ measurement during initial activation and avoids repeated z-index normalization
 and unnecessary allocations. The stretching fix increases ESM gzip from the
 initial PR's 4.43 KB to 4.53 KB despite these simplifications. Further size work
 should preserve tested layout behavior rather than add more generic machinery.
+
+### Scroll bookkeeping
+
+A second audit keeps the geometry reads but reuses each item's measurement record
+and its containing array. Both rectangles and visual ordering are refreshed on
+every active frame; registration changes rebuild the records. Only clients that
+need scroll updates remain in the scheduler's scroll set. Inactive fixed groups
+are reset once rather than repeatedly while offscreen.
+
+Production Chromium fixtures used 1, 20 and 100 items and 30 scroll steps after
+warm-up. Native items occupied independent sections; fixed items were all active
+in one stack (5px items with a 5000px trailing section). Compared with commit
+`4cd1c1e`, results for 100 items were:
+
+| Operation over 30 scrolls | Previous | Reviewed |
+| --- | ---: | ---: |
+| Fixed measurement record objects allocated | 3000 | 0 |
+| Fixed measurement record arrays allocated | 30 | 0 |
+| Fixed rectangle reads / RAF requests | 6030 / 30 | 6030 / 30 |
+| Native scheduler client visits | 3000 | 0 |
+| Native rectangle reads / RAF requests | 0 / 0 | 0 / 0 |
+
+Instrumentation counted measurement-record arrays returned by `Array.map` and
+scheduler-client visits through `Set` iteration. It did not measure elapsed CPU
+time. DOMRect values and layout plans still allocate; the zero counts above are
+specific to reusable measurement records, not all allocations. Retaining one
+record per registered item trades a small amount of retained storage for fewer
+short-lived objects. ESM gzip grows by approximately 0.03 KB to 4.56 KB. Browser
+regressions verify reordering through CSS alone as well as React reordering,
+dynamic dimensions, nested groups and native/fixed transitions.
