@@ -1,5 +1,8 @@
 # Deploying the demo
 
+For a snapshot built before merge, set `VITE_DEMO_SOURCE_REF` to its pushed commit
+SHA so source links resolve to that snapshot. The default is `main`.
+
 `pnpm build:demo` produces a standalone site in `demo-dist`. It includes React and
 uses relative asset URLs so it can be hosted under `/react-sticky-kit/` without a
 custom base-path rebuild. Hash navigation requires no server-side route fallback.

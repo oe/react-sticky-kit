@@ -6,7 +6,7 @@ import { StickyContainer, StickyItem } from '../src';
  * This demo shows how to use React's state to manage a dynamic offsetTop value
  */
 export default function DynamicOffsetDemo() {
-  const [headerHeight, setHeaderHeight] = useState(60);
+  const [headerHeight, setHeaderHeight] = useState(120);
   const [autoAdjust, setAutoAdjust] = useState(false);
   const headerRef = useRef<HTMLDivElement>(null);
   
@@ -16,7 +16,7 @@ export default function DynamicOffsetDemo() {
   };
   
   const decreaseHeaderHeight = () => {
-    setHeaderHeight(prev => Math.max(prev - 20, 40));
+    setHeaderHeight(prev => Math.max(prev - 20, 120));
   };
   
   // Automatically measure and update header height when in auto mode

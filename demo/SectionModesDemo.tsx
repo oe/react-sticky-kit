@@ -1,19 +1,20 @@
 import React from 'react';
 import { StickyContainer, StickyItem, type IStickyMode } from '../src';
 
+const sections = [
+  { title: 'Getting started', rows: [ ['Install the package', 'Add React Sticky Kit to your project using your preferred package manager.', 'pnpm add react-sticky-kit'], ['Add your first container', 'Wrap the headings you want to coordinate in a StickyContainer.', "import { StickyContainer, StickyItem } from 'react-sticky-kit';"] ] },
+  { title: 'Build your layout', rows: [ ['Choose a mode', 'Replace keeps the current section visible. Stack keeps previously reached headings together.', '<StickyContainer defaultMode="replace">'], ['Keep content in the page flow', 'Use regular page scrolling so headings track the browser viewport.', '<StickyItem><h2>Section heading</h2></StickyItem>'] ] },
+  { title: 'Make it your own', rows: [ ['Let heights adapt', 'Headings can wrap or change height. The kit measures them and coordinates their offsets.', '<StickyItem mode="stack">'], ['Set a viewport offset', 'Leave space above your headings when your application has a fixed header.', '<StickyContainer offsetTop={64}>'] ] },
+  { title: 'Explore more patterns', rows: [ ['Combine behaviors', 'Keep a page title stacked while section headings replace below it.', '<StickyItem mode="replace">'], ['Respect container boundaries', 'By default, headings stop sticking when their container leaves the viewport.', '<StickyContainer defaultMode="stack">'] ] },
+];
 export default function SectionModesDemo({ mode }: { mode: IStickyMode }) {
-  return <div style={{ maxWidth: 720, margin: '0 auto', background: '#fff' }}>
+  return <>
     <StickyContainer defaultMode={mode}>
-      {Array.from({ length: 8 }, (_, index) => <section key={index}>
-        <StickyItem><h2 style={{ margin: 0, padding: '12px 20px', background: index % 2 ? '#dbeafe' : '#dcfce7', fontSize: 20 }}>
-          {mode === 'stack' ? 'Stack' : 'Replace'} · Section {index + 1}
-        </h2></StickyItem>
-        <div style={{ minHeight: 200, padding: 20, boxSizing: 'border-box' }}>
-          <p>{mode === 'stack' ? 'Reached headings remain visible. Their measured heights determine the next offset.' : 'The next section heading pushes the previous heading away.'}</p>
-          <p>Scroll down to reach the next section.</p>
-        </div>
+      {sections.map((section, index) => <section key={section.title}>
+        <StickyItem><h2 className="section-heading"><span className="section-number">0{index + 1}</span>{section.title}<span className="mode-label">{mode}</span></h2></StickyItem>
+        <div className="section-body">{section.rows.map(([title, description, code]) => <div className="section-row" key={title}><h3>{title}</h3><p>{description}</p><pre><code>{code}</code></pre></div>)}</div>
       </section>)}
     </StickyContainer>
-    <div style={{ height: 500, padding: 20 }}>The headers stop sticking when the group leaves the viewport.</div>
-  </div>;
+    <div className="section-outro">You have reached the container boundary. Keep scrolling to see the headings return to the document flow.</div>
+  </>;
 }
