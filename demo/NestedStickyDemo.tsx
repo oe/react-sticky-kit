@@ -5,7 +5,6 @@ const OUTER_OFFSET = 60;
 
 export default function NestedStickyDemo() {
   const [outerStickyHeight, setOuterStickyHeight] = useState(0);
-  console.log('outerStickyHeight', outerStickyHeight);
   return (
     <div style={{ maxWidth: 700, margin: '0 auto', background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #0001', minHeight: 900 }}>
       <h2 style={{ textAlign: 'center', height: 60, boxSizing: 'border-box', zIndex: 400, position: 'sticky', top: 0, margin: 0, padding: 16, background: '#f5f5f5' }}>Nested Sticky Containers</h2>

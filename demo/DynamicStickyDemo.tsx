@@ -42,7 +42,7 @@ export default function DynamicStickyDemo() {
   }
 
   return (
-    <div style={{ maxWidth: 600, margin: '0 auto', background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #0001', overflow: 'hidden', minHeight: 900, position: 'relative' }}>
+    <div style={{ maxWidth: 600, margin: '0 auto', background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #0001', minHeight: 900, position: 'relative' }}>
       <h2 style={{ textAlign: 'center', margin: 0, padding: 16, background: '#f5f5f5' }}>Dynamic Sticky Items</h2>
       <StickyContainer offsetTop={0} defaultMode="stack">
         {content}
@@ -50,9 +50,9 @@ export default function DynamicStickyDemo() {
       <button
         onClick={addItem}
         style={{
-          position: 'fixed',
-          left: 24,
-          bottom: 24,
+          position: 'sticky',
+          bottom: 16,
+          margin: 16,
           zIndex: 9999,
           padding: '10px 18px',
           background: '#1677ff',

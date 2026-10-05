@@ -5,12 +5,12 @@ import { StickyContainer, StickyItem } from '../src';
 const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const contacts = letters.map(letter => ({
   letter,
-  people: Array.from({ length: Math.floor(Math.random() * 8 + 3) }, (_, i) => `${letter} Name ${i + 1}`),
+  people: Array.from({ length: 6 }, (_, i) => `${letter} Name ${i + 1}`),
 }));
 
 export default function ContactListDemo() {
   return (
-    <div style={{ maxWidth: 400, margin: '0 auto', background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #0001', overflow: 'hidden' }}>
+    <div style={{ maxWidth: 400, margin: '0 auto', background: '#fff', borderRadius: 8, boxShadow: '0 2px 8px #0001' }}>
       <StickyContainer offsetTop={0} defaultMode="replace">
         <StickyItem mode='stack'>
           <h2 style={{ textAlign: 'center', margin: 0, padding: 16, background: '#f5f5f5' }}>Contacts</h2>
@@ -26,7 +26,7 @@ export default function ContactListDemo() {
           </div>
         ))}
       </StickyContainer>
-      <div style={{ padding: 16, background: 'lightgreen', height: 1000, borderTop: '1px solid #eee', textAlign: 'center' }}>
+      <div style={{ padding: 16, background: '#f0f7f7', minHeight: 280, borderTop: '1px solid #eee', textAlign: 'center' }}>
         Scroll down to see the sticky header scrolling out of screen!
       </div>
     </div>

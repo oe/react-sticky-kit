@@ -2,14 +2,18 @@
   "name": "react-sticky-kit",
   "version": "0.3.0",
   "type": "module",
-  "description": "A lightweight, flexible React sticky container and item component library supporting multiple sticky modes, advanced layouts, and edge cases.",
+  "description": "React components for stacked and replacing sticky section headers, with automatic height coordination and viewport offsets.",
   "keywords": [
     "react",
     "sticky",
+    "sticky-header",
+    "sticky-headers",
+    "sticky-section",
+    "stacked-headers",
     "react-sticky",
     "sticky-container",
-    "sticky-item",
-    "z-index"
+    "typescript",
+    "nextjs"
   ],
   "repository": {
     "type": "git",
@@ -18,14 +22,14 @@
   "bugs": {
     "url": "https://github.com/oe/react-sticky-kit/issues"
   },
-  "homepage": "https://github.com/oe/react-sticky-kit#readme",
+  "homepage": "https://app.evecalm.com/react-sticky-kit/",
   "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "vite build && tsc -p tsconfig.build.json && node scripts/build-types.mjs",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
-    "lint": "eslint src demo test scripts vite.config.ts vitest.config.ts playwright.config.ts",
+    "lint": "eslint src demo test scripts vite.config.ts vite.demo.config.ts vitest.config.ts playwright.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
@@ -33,7 +37,8 @@
     "check:package": "node scripts/check-package.mjs",
     "test:browser": "playwright test",
     "prepublishOnly": "pnpm type-check && pnpm lint && pnpm test && pnpm build && pnpm check:package",
-    "check:compatibility": "node scripts/check-compatibility.mjs"
+    "check:compatibility": "node scripts/check-compatibility.mjs",
+    "build:demo": "vite build --config vite.demo.config.ts"
   },
   "files": [
     "dist"
