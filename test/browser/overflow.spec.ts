@@ -111,11 +111,8 @@ test('native short items need no library geometry reads while scrolling', async 
   await scroll(page, 510);
   expect(await page.evaluate(() => (window as unknown as { geometryReads: number }).geometryReads)).toBe(0);
 });
-test('item-level opt-in scrolls the group and native cleanup works outside its container', async ({ page }) => {
+test('native cleanup works outside its container', async ({ page }) => {
   await page.setViewportSize({ width: 1000, height: 720 });
-  await page.goto('/overflow.html?item-overflow');
-  await scroll(page, 600);
-  await expect.poll(() => top(page.getByTestId('a').locator('.oe-sticky-content'))).toBeCloseTo(-210, 0);
   await page.goto('/overflow.html?auto&short');
   await expect(page.getByTestId('a')).toHaveCSS('position', 'sticky');
   await scroll(page, 3000);
@@ -155,4 +152,47 @@ test('changing inline positioning clears native layout before measuring fixed co
   await page.getByRole('button', { name: 'Inline override' }).click();
   await expect(page.getByTestId('a')).toHaveCSS('position', 'relative');
   await expect(page.getByTestId('a').locator('.oe-sticky-content')).toHaveCSS('top', '20px');
+});
+test('rejected native tall items do not repeat eligibility geometry during scrolling', async ({ page }) => {
+  await page.setViewportSize({ width: 1000, height: 720 });
+  await page.goto('/overflow.html?auto');
+  await scroll(page, 600);
+  await expect(page.getByTestId('a').locator('.oe-sticky-content')).toHaveCSS('position', 'fixed');
+  await page.waitForTimeout(100);
+  await page.evaluate(() => {
+    const original = Element.prototype.getBoundingClientRect;
+    Object.assign(window, { geometryReads: 0 });
+    Element.prototype.getBoundingClientRect = function () {
+      if (this.classList.contains('oe-sticky-container') || this.classList.contains('oe-sticky-item') || this.classList.contains('oe-sticky-content')) {
+        (window as unknown as { geometryReads: number }).geometryReads++;
+      }
+      return original.call(this);
+    };
+  });
+  await scroll(page, 610);
+  await scroll(page, 620);
+  expect(await page.evaluate(() => (window as unknown as { geometryReads: number }).geometryReads)).toBe(6);
+  await page.getByRole('button', { name: 'Shrink' }).click();
+  await expect(page.getByTestId('a')).toHaveCSS('position', 'sticky');
+});
+
+test('vertically stretched flex items stay fixed without idle geometry work', async ({ page }) => {
+  await page.goto('/overflow.html?auto&short&stretch');
+  const wrapper = page.getByTestId('a');
+  await scroll(page, 500);
+  await expect(wrapper.locator('.oe-sticky-content')).toHaveCSS('position', 'fixed');
+  await page.waitForTimeout(100);
+  await page.evaluate(() => {
+    const original = Element.prototype.getBoundingClientRect;
+    Object.assign(window, { idleReads: 0 });
+    Element.prototype.getBoundingClientRect = function () {
+      (window as unknown as { idleReads: number }).idleReads++;
+      return original.call(this);
+    };
+  });
+  await page.waitForTimeout(200);
+  expect(await page.evaluate(() => (window as unknown as { idleReads: number }).idleReads)).toBe(0);
+  await wrapper.evaluate(el => { el.style.alignSelf = 'flex-start'; });
+  await page.getByRole('button', { name: 'Shrink' }).click();
+  await expect(wrapper).toHaveCSS('position', 'sticky');
 });

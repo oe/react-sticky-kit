@@ -16,7 +16,6 @@ export interface IStickyItemMeasurement {
 export interface IStickyItemHandle {
   el: HTMLElement;
   content: HTMLElement;
-  overflowBehavior: 'pin' | 'scroll';
   canNative: boolean;
   applyNative: (top: number, zIndex: number) => void;
   mode: Exclude<IStickyMode, 'none'>;

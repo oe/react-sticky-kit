@@ -5,11 +5,9 @@ export interface IStickyItemProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   /** Sticky mode for this item. Defaults to the StickyContainer's mode. */
   mode?: IStickyMode;
-  /** Scroll an oversized active group before pinning its corresponding edge. */
-  overflowBehavior?: 'pin' | 'scroll';
 }
 
-export function StickyItem({ mode, overflowBehavior = 'pin', children, className, ...rest }: IStickyItemProps): React.ReactElement<any, any> { // eslint-disable-line @typescript-eslint/no-explicit-any -- Preserve the existing JSX.Element return shape.
+export function StickyItem({ mode, children, className, ...rest }: IStickyItemProps): React.ReactElement<any, any> { // eslint-disable-line @typescript-eslint/no-explicit-any -- Preserve the existing JSX.Element return shape.
   const context = useStickyContext();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -30,11 +28,12 @@ export function StickyItem({ mode, overflowBehavior = 'pin', children, className
     const automaticHeight = normalHeight === undefined || ['auto', 'initial', 'unset', 'revert',
       'revert-layer', 'fit-content', 'min-content', 'max-content'].includes(String(normalHeight));
     let sticky = false;
-    let nativeLayout: string | null = null;
+    let nativeTop: number | null = null;
+    let nativeZIndex: number;
     let previousLayout: Parameters<IStickyItemHandle['apply']>[0] = null;
     const reset = () => {
-      if (nativeLayout !== null) {
-        nativeLayout = null;
+      if (nativeTop !== null) {
+        nativeTop = null;
         wrapper.classList.remove('is-native-sticky');
         wrapper.style.removeProperty('--oe-sticky-top');
         wrapper.style.removeProperty('--oe-sticky-z');
@@ -58,7 +57,7 @@ export function StickyItem({ mode, overflowBehavior = 'pin', children, className
         reset();
         return;
       }
-      if (nativeLayout !== null) reset();
+      if (nativeTop !== null) reset();
       const { top, wrapperHeight, width, left, index } = layout;
       if (previousLayout && previousLayout.top === top && previousLayout.wrapperHeight === wrapperHeight &&
         previousLayout.width === width && previousLayout.left === left && previousLayout.index === index) return;
@@ -75,15 +74,15 @@ export function StickyItem({ mode, overflowBehavior = 'pin', children, className
       }
     };
     const applyNative = (top: number, zIndex: number) => {
-      const key = `${top}:${zIndex}`;
-      if (nativeLayout === key) return;
+      if (nativeTop === top && nativeZIndex === zIndex) return;
       reset();
-      nativeLayout = key;
+      nativeTop = top;
+      nativeZIndex = zIndex;
       wrapper.style.setProperty('--oe-sticky-top', `${top}px`);
       wrapper.style.setProperty('--oe-sticky-z', String(zIndex));
       wrapper.classList.add('is-native-sticky');
     };
-    const handle: IStickyItemHandle = { overflowBehavior, canNative: false, applyNative, el: wrapper, content, mode: effectiveMode, apply, measure, invalidate: () => { box = null; previousLayout = null; } };
+    const handle: IStickyItemHandle = { canNative: false, applyNative, el: wrapper, content, mode: effectiveMode, apply, measure, invalidate: () => { box = null; previousLayout = null; } };
     measurementRef.current = handle;
     const unregister = register(handle);
     return () => {
@@ -91,7 +90,7 @@ export function StickyItem({ mode, overflowBehavior = 'pin', children, className
       unregister();
       reset();
     };
-  }, [register, effectiveMode, baseZIndex, normalHeight, overflowBehavior]);
+  }, [register, effectiveMode, baseZIndex, normalHeight]);
 
   useEffect(() => {
     if (measurementRef.current) {

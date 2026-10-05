@@ -24,29 +24,29 @@ function flush() {
   pending.clear();
   const writes: { client: Client; write: Write }[] = [];
   const notifications: { client: Client; notify: () => void }[] = [];
-  const errors: unknown[] = [];
+  let errors: unknown[] | undefined;
   // Read every container before any container writes, including nested groups.
   for (const client of batch) {
     if (!clients.has(client)) continue;
     try {
       const write = client.read();
       if (write) writes.push({ client, write });
-    } catch (error) { errors.push(error); }
+    } catch (error) { (errors ??= []).push(error); }
   }
   for (const { client, write } of writes) {
     if (!clients.has(client)) continue;
     try {
       const notify = write();
       if (notify) notifications.push({ client, notify });
-    } catch (error) { errors.push(error); }
+    } catch (error) { (errors ??= []).push(error); }
   }
   // Consumer callbacks can synchronously change or unmount another container.
   for (const { client, notify } of notifications) {
     if (!clients.has(client)) continue;
-    try { notify(); } catch (error) { errors.push(error); }
+    try { notify(); } catch (error) { (errors ??= []).push(error); }
   }
   // A user callback must not prevent other containers from updating.
-  if (errors.length) throw errors[0];
+  if (errors) throw errors[0];
 }
 
 export function subscribeUpdates(read: Client['read'], invalidate: () => void) {

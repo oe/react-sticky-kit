@@ -29,9 +29,8 @@ Multiple active stack items share one displacement: they do not independently
 compete for viewport space. Items enter the group when they reach its current
 stack edge. The full heights of active items are still reported through
 `onStickyItemsHeightChange`; this is not an intersected visible-height callback.
-A `StickyItem` can also opt in with `overflowBehavior="scroll"`. This enables the
-same group behavior for its container, including other registered items; it is
-not an independent scrolling frame for that item.
+Overflow is a container-level setting because the active items move as a group.
+It is not an independent scrolling frame for an individual item.
 
 `offsetBottom` reserves space only for the bottom edge of oversized content. It
 is not a bottom-alignment option for short content. Short items remain top-aligned.
@@ -43,7 +42,8 @@ conditions hold:
 
 - The browser reports support for sticky positioning and provides ResizeObserver.
 - There is one registered sticky item, directly inside the container.
-- Its content and offsets fit inside the viewport; its wrapper is not stretched.
+- Its content and offsets fit inside the viewport; its wrapper is not stretched. Row-flex and grid stretching are rejected
+  structurally, even if a fixed placeholder temporarily makes the wrapper fit.
 - The item has no explicit inline height, position, top, bottom or z-index override.
 - No ancestor establishes an overflow auto, scroll, hidden or overlay boundary.
 - The container uses its default boundary constraint.
@@ -83,6 +83,33 @@ not equate observer counts to CPU time or memory. Zero geometry reads does not
 mean zero browser layout or paint work. These short-item results do not establish
 that our long-content implementation is faster than Sticky Box.
 
-The project build's ESM gzip grows from 3.48 KB to approximately 4.43 KB, and CSS
+The project build's ESM gzip grows from 3.48 KB to approximately 4.53 KB, and CSS
 from 0.09 KB to 0.14 KB. The feature adds no dependency. It does not achieve a
 smaller bundle than Sticky Box; size remains a tradeoff for the expanded API.
+
+### Follow-up audit
+
+The same production fixture also compared the initial PR implementation with the
+reviewed implementation using 900px items. Native fit rejection is now cached
+until a resize, observed layout change or React commit invalidates it, rather
+than measuring unsuitable items again on each scroll.
+
+| Instances | Initial auto fallback reads / RAFs | Reviewed auto fallback reads / RAFs |
+| --- | ---: | ---: |
+| 1 | 150 / 30 | 90 / 30 |
+| 20 | 1860 / 30 | 660 / 30 |
+| 100 | 9060 / 30 | 3060 / 30 |
+
+Short native items retain 0 reads / 0 RAF requests. In a row-flex stretching
+fixture, a 200ms idle observation previously recorded 54 rectangle reads and
+12 RAF requests as native/fixed modes alternated; the reviewed implementation
+records 0 / 0. Regression tests cover stable fallback and a switch to native
+when stretching is removed. These counts measure library work, not elapsed CPU
+time or browser rendering cost.
+
+The audit also removes the unreleased item-level overflow option: overflow
+coordination has one container-level entry point. It reuses the first item's
+measurement during initial activation and avoids repeated z-index normalization
+and unnecessary allocations. The stretching fix increases ESM gzip from the
+initial PR's 4.43 KB to 4.53 KB despite these simplifications. Further size work
+should preserve tested layout behavior rather than add more generic machinery.

@@ -145,7 +145,6 @@ For practical examples and existing-library migration, see the
 | Prop    | Type                                 | Default | Description                                 |
 |---------|--------------------------------------|---------|---------------------------------------------|
 | `mode`  | `'replace' \| 'stack' \| 'none'`     |         | Sticky mode for this item (overrides StickyContainer) |
-| `overflowBehavior` | `'pin' \| 'scroll'` | `'pin'` | A scroll opt-in enables coordinated overflow behavior for the containing group |
 
 ## Sticky Modes
 - **replace**: Only one sticky item is visible at a time, replacing the previous.

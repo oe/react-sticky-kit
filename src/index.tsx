@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback, useMemo } from 'react';
-import { StickyGroupContext, type IStickyItemHandle, MIN_BASE_Z_INDEX, DEFAULT_BASE_Z_INDEX } from './context.js';
+import { StickyGroupContext, type IStickyItemHandle, type IStickyItemMeasurement, MIN_BASE_Z_INDEX, DEFAULT_BASE_Z_INDEX } from './context.js';
 import './style.scss';
 import { observeLayoutChanges } from './layout-observer.js';
 import { observeResize } from './resize-observer.js';
@@ -48,18 +48,19 @@ export interface IStickyContainerProps extends React.HTMLAttributes<HTMLDivEleme
 export function StickyContainer({ children, offsetTop = 0, offsetBottom = 0, overflowBehavior = 'pin', positionStrategy = 'fixed', baseZIndex,
   onStickyItemsHeightChange, defaultMode = 'replace', constraint, className, ...rest
 }: IStickyContainerProps): React.ReactElement<any, any> { // eslint-disable-line @typescript-eslint/no-explicit-any -- Preserve the existing JSX.Element return shape.
+  const fixedBaseZIndex = baseZIndex === undefined ? DEFAULT_BASE_Z_INDEX :
+    Math.max(Number(baseZIndex) || 0, MIN_BASE_Z_INDEX);
   const containerRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef(new Set<IStickyItemHandle>());
   const registeredItemsRef = useRef<IStickyItemHandle[] | null>(null);
   const handlesRef = useRef(new Map<Element, IStickyItemHandle>());
   const stickyRef = useRef(false);
-  const scrollingItemsRef = useRef(0);
-  const nativeSafeRef = useRef<boolean | null>(null);
+  const nativeEligibleRef = useRef<boolean | null>(null);
   const updatesRef = useRef<ReturnType<typeof subscribeUpdates> | null>(null);
   const observationsRef = useRef(new Map<Element, () => void>());
   const heightRef = useRef(0);
   const overflowRef = useRef<{ scrollY: number; shift: number; maximum: number } | null>(null);
-  const optionsRef = useRef({ offsetTop, offsetBottom, overflowBehavior, positionStrategy, baseZIndex, constraint, onStickyItemsHeightChange });
+  const optionsRef = useRef({ offsetTop, offsetBottom, overflowBehavior, positionStrategy, baseZIndex: fixedBaseZIndex, constraint, onStickyItemsHeightChange });
 
   const scheduleUpdate = useCallback(() => updatesRef.current?.schedule(), []);
 
@@ -75,8 +76,7 @@ export function StickyContainer({ children, offsetTop = 0, offsetBottom = 0, ove
     // Native positioning is limited to one direct child; multiple headings still need coordination.
     const single = registeredItems.length === 1 ? registeredItems[0] : undefined;
     if (options.positionStrategy === 'auto' && options.constraint !== 'none' && single?.canNative &&
-      typeof ResizeObserver !== 'undefined' &&
-      single.el.parentElement === container && (nativeSafeRef.current ??= hasViewportSticky(container)) && typeof CSS !== 'undefined' && typeof CSS.supports === 'function' && CSS.supports('position', 'sticky')) {
+      single.el.parentElement === container && (nativeEligibleRef.current ??= hasViewportSticky(container, single.el))) {
       const height = single.content.getBoundingClientRect().height;
       const itemRect = single.el.getBoundingClientRect();
       if (itemRect.height <= height + 1 && height + options.offsetTop + Math.max(0, options.offsetBottom) <= window.innerHeight) {
@@ -86,14 +86,15 @@ export function StickyContainer({ children, offsetTop = 0, offsetBottom = 0, ove
           overflowRef.current = null;
           stickyRef.current = true;
           container.classList.remove('can-sticky');
-          single.applyNative(options.offsetTop, options.baseZIndex === undefined ? DEFAULT_BASE_Z_INDEX :
-            Math.max(Number(options.baseZIndex) || 0, MIN_BASE_Z_INDEX));
+          single.applyNative(options.offsetTop, options.baseZIndex);
           if (heightRef.current !== total) {
             heightRef.current = total;
             return () => options.onStickyItemsHeightChange?.(total);
           }
         };
       }
+      // A rejected fit cannot change from scrolling alone. Recheck on layout invalidation.
+      nativeEligibleRef.current = false;
     }
     // Offscreen containers need only one rectangle read, regardless of item count.
     if (!canSticky) return () => {
@@ -120,17 +121,18 @@ export function StickyContainer({ children, offsetTop = 0, offsetBottom = 0, ove
       const position = a.item.el.compareDocumentPosition(b.item.el);
       return position & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
     });
-    const scrolling = options.overflowBehavior === 'scroll' ||
-      scrollingItemsRef.current > 0;
+    const scrolling = options.overflowBehavior === 'scroll';
     const scrollY = scrolling ? window.scrollY : 0;
     const previous = scrolling ? overflowRef.current : null;
     let shift = 0;
+    let firstDimensions: IStickyItemMeasurement | undefined;
     if (scrolling) {
       if (previous) shift = Math.max(-previous.maximum, Math.min(0, previous.shift - (scrollY - previous.scrollY)));
       else {
         const first = measurements[0];
         if (first && first.rect.top <= options.offsetTop) {
-          const height = first.item.measure(first.rect).height;
+          firstDimensions = first.item.measure(first.rect);
+          const height = firstDimensions.height;
           const maximum = Math.max(0, height + options.offsetTop + Math.max(0, options.offsetBottom) - window.innerHeight);
           shift = Math.max(-maximum, Math.min(0, first.rect.top - options.offsetTop));
         }
@@ -145,7 +147,7 @@ export function StickyContainer({ children, offsetTop = 0, offsetBottom = 0, ove
       const nextTop = measurements[index + 1]?.rect.top;
       if (item.mode === 'replace' && nextTop !== undefined && nextTop < activationTop) return null;
       // Only eligible contents need measuring; all reads still precede every write.
-      const dimensions = item.measure(itemRect);
+      const dimensions = index === 0 && firstDimensions ? firstDimensions : item.measure(itemRect);
       const top = item.mode === 'replace' && nextTop !== undefined ?
         Math.min(offset, nextTop - dimensions.height) : offset;
       totalHeight += dimensions.height;
@@ -179,17 +181,18 @@ export function StickyContainer({ children, offsetTop = 0, offsetBottom = 0, ove
   }, []);
 
   const onResize = useCallback((entries: ResizeObserverEntry[]) => {
+    nativeEligibleRef.current = null;
     for (const entry of entries) handlesRef.current.get(entry.target)?.invalidate();
     scheduleUpdate();
   }, [scheduleUpdate]);
   const invalidate = useCallback(() => {
-    nativeSafeRef.current = null;
+    nativeEligibleRef.current = null;
     for (const item of itemsRef.current) item.invalidate();
   }, []);
 
   const register = useCallback((item: IStickyItemHandle) => {
     itemsRef.current.add(item);
-    if (item.overflowBehavior === 'scroll') scrollingItemsRef.current++;
+    nativeEligibleRef.current = null;
     registeredItemsRef.current = null;
     handlesRef.current.set(item.el, item);
     handlesRef.current.set(item.content, item);
@@ -206,7 +209,7 @@ export function StickyContainer({ children, offsetTop = 0, offsetBottom = 0, ove
       handlesRef.current.delete(item.el);
       handlesRef.current.delete(item.content);
       itemsRef.current.delete(item);
-      if (item.overflowBehavior === 'scroll') scrollingItemsRef.current--;
+      nativeEligibleRef.current = null;
       registeredItemsRef.current = null;
       scheduleUpdate();
     };
@@ -240,14 +243,12 @@ export function StickyContainer({ children, offsetTop = 0, offsetBottom = 0, ove
 
   // Every commit can change item order or layout without a scroll event.
   useEffect(() => {
-    nativeSafeRef.current = null;
-    optionsRef.current = { offsetTop, offsetBottom, overflowBehavior, positionStrategy, baseZIndex, constraint, onStickyItemsHeightChange };
+    nativeEligibleRef.current = null;
+    optionsRef.current = { offsetTop, offsetBottom, overflowBehavior, positionStrategy, baseZIndex: fixedBaseZIndex, constraint, onStickyItemsHeightChange };
     for (const item of itemsRef.current) item.invalidate();
     scheduleUpdate();
   });
 
-  const fixedBaseZIndex = baseZIndex === undefined ? DEFAULT_BASE_Z_INDEX :
-    Math.max(Number(baseZIndex) || 0, MIN_BASE_Z_INDEX);
   const context = useMemo(() => ({ register, scheduleUpdate, baseZIndex: fixedBaseZIndex, mode: defaultMode }),
     [register, scheduleUpdate, fixedBaseZIndex, defaultMode]);
 
@@ -260,9 +261,17 @@ export function StickyContainer({ children, offsetTop = 0, offsetBottom = 0, ove
   );
 }
 
-function hasViewportSticky(container: HTMLElement) {
+function hasViewportSticky(container: HTMLElement, item: HTMLElement) {
+  if (typeof ResizeObserver === 'undefined' || typeof CSS === 'undefined' ||
+    typeof CSS.supports !== 'function' || !CSS.supports('position', 'sticky')) return false;
   for (let node: HTMLElement | null = container; node; node = node.parentElement) {
     const style = getComputedStyle(node);
+    // A fixed placeholder can hide vertical stretching; reject the layout itself
+    // to avoid alternating native/fixed modes on every ResizeObserver delivery.
+    if (node === container && (style.display.includes('grid') ||
+      (style.display.includes('flex') && !style.flexDirection.startsWith('column'))) &&
+      /^(normal|stretch)$/.test(style.alignItems) &&
+      /^(auto|normal|stretch)$/.test(getComputedStyle(item).alignSelf)) return false;
     if (/(auto|scroll|hidden|overlay)/.test(`${style.overflowX} ${style.overflowY}`)) return false;
   }
   return true;
