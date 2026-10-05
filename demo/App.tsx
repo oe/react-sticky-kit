@@ -66,7 +66,7 @@ export default function App() {
         <div className="nav-label">Examples</div>
         {examples.map(p => <a href={`#${p.hash}`} onClick={() => { setMenuOpen(false); window.scrollTo(0, 0); }} key={p.hash} aria-current={route === p.hash ? 'page' : undefined}>{p.name}</a>)}
       </nav>
-      <div className="sidebar-footer"><a href={repo}>GitHub</a><a href="https://www.npmjs.com/package/react-sticky-kit">npm</a><span>Install with pnpm</span><CodeBlock code={install} /></div>
+      <div className="sidebar-footer"><a href={repo}>GitHub</a><a href="https://www.npmjs.com/package/react-sticky-kit">npm</a><span>Install with pnpm</span><div className="sidebar-install"><code>pnpm add<br /><span>react-sticky-kit</span></code><CopyButton value={install} /></div></div>
     </aside>
     <main id="main-content" tabIndex={-1}>
       <div className="topbar"><span>{example ? 'Examples' : 'Getting started'} <span className="breadcrumb-divider">/</span> {title}</span><div><a href={repo}>GitHub</a><a href="https://www.npmjs.com/package/react-sticky-kit">npm</a></div></div>
