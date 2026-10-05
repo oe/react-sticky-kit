@@ -42,6 +42,9 @@ void result;
     run(process.execPath, [join(consumer, 'node_modules/typescript/bin/tsc'),
       '--noEmit', '--strict', '--module', 'NodeNext', '--target', 'ES2018',
       '--esModuleInterop', 'consumer.mts', 'consumer.cts'], consumer);
+    run(process.execPath, [join(consumer, 'node_modules/typescript/bin/tsc'),
+      '--noEmit', '--strict', '--module', 'ESNext', '--moduleResolution', 'Bundler',
+      '--target', 'ES2018', '--esModuleInterop', 'consumer.mts'], consumer);
     const require = createRequire(join(consumer, 'package.json'));
     const React = require('react');
     const ReactDOM = require('react-dom');

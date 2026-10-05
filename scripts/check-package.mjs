@@ -20,7 +20,8 @@ for (const library of [esm, cjs]) {
 const nativeImport = await import('react-sticky-kit/native');
 const nativeRequire = require('react-sticky-kit/native');
 assert.equal(nativeImport.StickyContainer, nativeRequire.StickyContainer);
-for (const library of [nativeImport, nativeRequire]) {
+const nativeEsm = await import(new URL('../dist/react-sticky-native.es.js', import.meta.url));
+for (const library of [nativeImport, nativeRequire, nativeEsm]) {
   const html = renderToString(React.createElement(library.StickyContainer, { offsetTop: 24 },
     React.createElement(library.StickyItem, null, 'Native SSR header')));
   assert.match(html, /position:sticky;top:24px;z-index:200/);

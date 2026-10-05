@@ -35,7 +35,8 @@
     "vitest.config.ts",
     "eslint.config.js",
     "scripts",
-    "playwright.config.ts"
+    "playwright.config.ts",
+    "vite.native.config.ts"
   ],
   "exclude": [
     "node_modules",
