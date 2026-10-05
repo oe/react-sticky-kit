@@ -17,6 +17,20 @@ for (const library of [esm, cjs]) {
   assert.match(html, /SSR header/);
   assert.match(html, /oe-sticky-container custom/);
 }
+const nativeImport = await import('react-sticky-kit/native');
+const nativeRequire = require('react-sticky-kit/native');
+assert.equal(nativeImport.StickyContainer, nativeRequire.StickyContainer);
+for (const library of [nativeImport, nativeRequire]) {
+  const html = renderToString(React.createElement(library.StickyContainer, { offsetTop: 24 },
+    React.createElement(library.StickyItem, null, 'Native SSR header')));
+  assert.match(html, /position:sticky;top:24px;z-index:200/);
+  assert.match(html, /Native SSR header/);
+}
+for (const name of ['react-sticky-native.es.js', 'react-sticky-native.cjs']) {
+  const content = await readFile(new URL(`../dist/${name}`, import.meta.url), 'utf8');
+  assert.match(content, /^['"]use client['"]/);
+  assert.doesNotMatch(content, /ResizeObserver|MutationObserver|requestAnimationFrame|position:fixed/);
+}
 for (const style of ['react-sticky-kit/style', 'react-sticky-kit/dist/style.css']) {
   assert.match(await readFile(require.resolve(style), 'utf8'), /position:fixed/);
 }

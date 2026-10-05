@@ -26,10 +26,10 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && tsc -p tsconfig.build.json && node scripts/build-types.mjs",
+    "build": "vite build && vite build --config vite.native.config.ts && tsc -p tsconfig.build.json && node scripts/build-types.mjs",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
-    "lint": "eslint src demo test scripts vite.config.ts vite.demo.config.ts vitest.config.ts playwright.config.ts",
+    "lint": "eslint src demo test scripts vite.config.ts vite.demo.config.ts vitest.config.ts playwright.config.ts vite.native.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
@@ -68,7 +68,27 @@
       }
     },
     "./style": "./dist/style.css",
-    "./dist/style.css": "./dist/style.css"
+    "./dist/style.css": "./dist/style.css",
+    "./native": {
+      "node": {
+        "import": {
+          "types": "./dist/native.d.cts",
+          "default": "./dist/react-sticky-native.cjs"
+        },
+        "require": {
+          "types": "./dist/native.d.cts",
+          "default": "./dist/react-sticky-native.cjs"
+        }
+      },
+      "import": {
+        "types": "./dist/native.d.ts",
+        "default": "./dist/react-sticky-native.es.js"
+      },
+      "require": {
+        "types": "./dist/native.d.cts",
+        "default": "./dist/react-sticky-native.cjs"
+      }
+    }
   },
   "peerDependencies": {
     "react": ">=17.0.0",

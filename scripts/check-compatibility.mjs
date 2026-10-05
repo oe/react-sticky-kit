@@ -24,6 +24,12 @@ try {
     const typecheck = `import React from 'react';
 import { StickyContainer, StickyItem, type IStickyMode } from 'react-sticky-kit';
 import 'react-sticky-kit/style';
+import { StickyContainer as NativeContainer, StickyItem as NativeItem } from 'react-sticky-kit/native';
+const native = React.createElement(NativeContainer, { offsetTop: 24, children:
+  React.createElement(NativeItem, { children: 'Native header' }) });
+// @ts-expect-error Native entry deliberately excludes group-coordination props.
+NativeContainer({ children: 'Header', overflowBehavior: 'scroll' });
+void native;
 const mode: IStickyMode = 'stack';
 const element = React.createElement(StickyContainer, { defaultMode: mode, children:
   React.createElement(StickyItem, { children: 'Header' }) });
@@ -43,6 +49,11 @@ void result;
     const library = require('react-sticky-kit');
     const imported = await import(require.resolve('react-sticky-kit'));
     assert.equal(imported.StickyContainer, library.StickyContainer);
+    const nativeLibrary = require('react-sticky-kit/native');
+    const nativeImported = await import(require.resolve('react-sticky-kit/native'));
+    assert.equal(nativeImported.StickyContainer, nativeLibrary.StickyContainer);
+    assert.match(renderToString(React.createElement(nativeLibrary.StickyContainer, { offsetTop: 24 },
+      React.createElement(nativeLibrary.StickyItem, null, 'Native header'))), /position:sticky;top:24px/);
     const element = React.createElement(library.StickyContainer, { defaultMode: 'stack' },
       React.createElement(library.StickyItem, null, 'Compatibility header'));
     assert.match(renderToString(element), /Compatibility header/);

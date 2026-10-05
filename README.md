@@ -72,6 +72,30 @@ The demo also includes dynamic heights, nested groups and container boundaries.
 To edit an example, use the [contact-list sandbox](https://codesandbox.io/p/sandbox/dreamy-hofstadter-v9dzfz);
 see [running the demo](#run-the-demo) for local development.
 
+## Reduce loading for native CSS layouts
+
+For a simple layout that only needs native CSS sticky, use the separate entry:
+
+```tsx
+import { StickyContainer, StickyItem } from 'react-sticky-kit/native';
+
+<StickyContainer offsetTop={16}>
+  <StickyItem><Navigation /></StickyItem>
+  <main>{content}</main>
+</StickyContainer>
+```
+
+The native entry keeps the Container/Item structure and loads no fixed engine,
+observers or scheduler. Its ESM artifact is approximately **0.54 KB gzip**,
+excluding React. No special bundler configuration is needed.
+
+This is an explicit choice, not browser-driven loading. It does **not** provide
+fixed fallback, automatic stack/replace coordination, height callbacks or
+oversized group scrolling. Its offsets follow the nearest scrolling ancestor.
+Use the full entry for those capabilities; full-entry `positionStrategy="auto"`
+reduces runtime work but still loads the full implementation. Do not mix components
+from the two entries. [Entry selection and measured tradeoffs](docs/native-loading.md).
+
 ## Content taller than the viewport
 
 Keep the existing Container / Item structure and opt into coordinated scrolling:
