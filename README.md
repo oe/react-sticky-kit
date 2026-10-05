@@ -28,10 +28,30 @@ Coordinate multiple sticky section headers in React. Stack headers using their a
 heights, replace a section header as the next one arrives, or mix both behaviors
 under a shared viewport offset.
 
-**Use native CSS `position: sticky` for a single header or a straightforward grouped
-list.** Choose React Sticky Kit when you need dynamic-height stacking, mixed
-stack/replace behavior, or the total sticky height without maintaining your own
-measurement and scroll logic.
+## Why React Sticky Kit?
+
+- **Sticky behavior without requiring CSS sticky support.** The default
+  `positionStrategy="fixed"` coordinates viewport positioning with JavaScript and
+  `position: fixed`. It works without native `position: sticky` when the browser
+  meets the React and JavaScript requirements below.
+- **Automatic coordination of variable-height headers.** Stack, replace or mix
+  headings without maintaining per-header heights and offsets in your app.
+- **Keep oversized content reachable.** Opt into group scrolling with
+  `overflowBehavior="scroll"`; active stack items move together without overlapping.
+- **Choose native positioning when it fits.** Opt-in `positionStrategy="auto"`
+  uses CSS sticky for eligible short, single items and falls back to fixed when
+  support or layout conditions are missing. Native items without a height callback
+  skip scroll-driven library updates.
+- **Shared work across groups.** Scroll/resize listeners, frame scheduling and
+  observers are shared; geometry reads finish before styles are written.
+
+Native CSS remains a good choice for a simple layout when your target browsers
+support it. Choose this kit for coordinated dynamic headings, mixed modes,
+measured total sticky height, or a fixed implementation independent of CSS sticky.
+This is not a claim of universal browser compatibility or the smallest bundle.
+
+[Browser support and fallback behavior](#browser-support-and-fallbacks) ·
+[Detailed compatibility guide](docs/browser-compatibility.md)
 
 ## See the behavior
 
@@ -107,19 +127,22 @@ For offsets relative to a scrollable panel, prefer native CSS sticky positioning
 
 | Need | Start with |
 | --- | --- |
-| A single sticky navigation bar or simple grouped list | Native CSS `position: sticky` |
-| A sidebar taller than the viewport | A sidebar-focused solution such as `react-sticky-box` |
+| A single sticky navigation bar or simple grouped list | Native CSS `position: sticky`, when supported by your target browsers |
+| Viewport-based tall content or oversized coordinated groups | React Sticky Kit, `overflowBehavior="scroll"` |
+| Sticky behavior without native CSS sticky support | React Sticky Kit, default fixed strategy (runtime requirements still apply) |
+| Internal scroll-container coordinates or short-sidebar bottom alignment | A sidebar-focused solution such as `react-sticky-box` |
 | Dynamic-height headers that stack automatically | React Sticky Kit, `stack` mode |
 | A persistent title above replacing section headings | React Sticky Kit, mixed modes |
 | The current total sticky height | `onStickyItemsHeightChange` |
 | Table columns, built-in virtualization, or hide-on-scroll navigation | A solution designed for that specific interaction |
 
-React Sticky Kit uses fixed positioning while active. It is not a drop-in
+React Sticky Kit defaults to fixed positioning; opt-in auto uses native sticky
+for eligible layouts. It is not a drop-in
 replacement for scroll-container-relative sticky behavior. Ancestor transforms
 and overflow clipping can affect fixed positioning.
 
 React 17/18/19, SSR and TypeScript 5 NodeNext consumers are covered by package
-checks. The ESM artifact is approximately **4.43 kB gzip**, excluding React and CSS;
+checks. The ESM artifact is approximately **4.56 kB gzip**, excluding React and CSS;
 there are no additional runtime dependencies. See the
 [performance audit](docs/performance.md) for methods and tradeoffs.
 
@@ -204,6 +227,30 @@ Open [http://localhost:5173](http://localhost:5173) and switch between demo page
 * [Dynamic sticky items](http://localhost:5173/#dynamic) dynamic sticky items(add/remove)
 * [Dynamic offsetTop](http://localhost:5173/#dynamic-offset) dynamic offsetTop that adapts to header height changes
 * [Constraint Demo](http://localhost:5173/#constraint) demo showing different constraint options
+
+## Browser support and fallbacks
+
+**Native `position: sticky` is not required by the default fixed strategy.**
+The `auto` strategy is optional; it checks sticky support, ResizeObserver and
+layout eligibility before choosing native positioning.
+
+| Browser / layout capability | Default `fixed` | Opt-in `auto` |
+| --- | --- | --- |
+| Native sticky supported, eligible short single item | Fixed coordination | Native sticky |
+| Native sticky unavailable or cannot be detected | Fixed coordination | Falls back to fixed |
+| ResizeObserver unavailable | Fixed; refreshes on scroll, window resize and React commits | Falls back to fixed with the same refresh behavior |
+| Tall, multiple or otherwise ineligible items | Fixed coordination | Falls back to fixed |
+
+React 17+ is required, and distributed JavaScript targets ES2018. Browsers must
+also provide the standard DOM APIs used by React and the library, including
+requestAnimationFrame, Map and Set. CSS sticky independence is not an IE11 or
+all-legacy-browser support promise. Older environments need application-level
+transpilation/polyfills and their own validation; they are not certified targets.
+
+Regression tests run in Chromium, Firefox and WebKit, including simulated absence
+of native sticky support and ResizeObserver. They are engine-based tests, not a
+certified minimum-version list for every browser or embedded WebView.
+See [compatibility details and layout limits](docs/browser-compatibility.md).
 
 ## SSR/SSG Support
 

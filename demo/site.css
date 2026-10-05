@@ -53,3 +53,7 @@ main{margin-left:256px;padding:28px 44px 0;max-width:1200px;outline:none}.topbar
 .code-wrap{color:#c9d7e9;border-color:#40506b;background:#1e304c;padding:3px 8px;font-size:11px;min-height:32px}
 .code-wrap:hover,.code-wrap[aria-pressed=true]{background:#314461}
 .code-block pre.wrap-lines{white-space:pre-wrap;overflow-wrap:anywhere}
+.benefits-list{padding-left:22px;color:#56647e}
+.benefits-list li{padding:5px 0}
+.benefits-list strong{color:#22324d}
+.guide section p{color:#56647e}

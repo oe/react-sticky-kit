@@ -37,6 +37,11 @@ is not a bottom-alignment option for short content. Short items remain top-align
 
 ## Native positioning
 
+Native CSS sticky is optional. The default fixed strategy does not require its
+support; auto falls back to fixed when support or eligibility is absent. See
+[browser support and fallbacks](browser-compatibility.md) for runtime requirements
+and behavior without ResizeObserver.
+
 `positionStrategy="auto"` uses native `position: sticky` only when all of these
 conditions hold:
 

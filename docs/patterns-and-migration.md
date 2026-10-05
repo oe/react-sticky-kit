@@ -2,7 +2,8 @@
 
 ## Start with native CSS
 
-A grouped contact list often only needs native sticky positioning:
+When your target browsers support CSS sticky, a grouped contact list often only
+needs native positioning:
 
 ```tsx
 type ContactGroup = { letter: string; people: { id: string; name: string }[] };
@@ -20,7 +21,9 @@ function ContactGroups({ groups }: { groups: ContactGroup[] }) {
 The section boundary pushes its heading away as the next section arrives. This
 avoids a JavaScript dependency and follows the nearest scrolling ancestor. Use
 React Sticky Kit when coordinating multiple headers would otherwise require
-application-owned measurements and offsets.
+application-owned measurements and offsets, or when you need viewport positioning
+without relying on CSS sticky support. The kit defaults to fixed positioning; see
+[browser requirements and fallbacks](browser-compatibility.md).
 
 ## Keep a title above changing section headings
 

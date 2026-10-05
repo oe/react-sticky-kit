@@ -16,12 +16,25 @@ function GettingStarted({ installation }: { installation: boolean }) {
   const command = `${manager} ${manager === 'npm' ? 'install' : 'add'} react-sticky-kit`;
   return <article className="guide">
     <h1>{installation ? 'Installation' : 'Sticky headers, working together.'}</h1>
-    <p className="lead">{installation ? 'Add the package, import its styles, and choose how your headings behave.' : 'Coordinate stacked and replacing section headers without manually measuring their heights.'}</p>
-    {!installation && <><h2>Start with the behavior you need</h2><div className="pattern-list">
+    <p className="lead">{installation ? 'Add the package, import its styles, and choose how your headings behave.' : 'Coordinate variable-height headers with a fixed strategy that does not require native CSS sticky. Use native positioning when it fits your layout.'}</p>
+    {!installation && <><h2>Why React Sticky Kit?</h2><ul className="benefits-list">
+      <li><strong>No CSS sticky requirement.</strong> The default fixed strategy works independently of native <code>position: sticky</code> support, within the runtime requirements below.</li>
+      <li><strong>Automatic height coordination.</strong> Stack, replace or mix variable-height headings without managing their offsets yourself.</li>
+      <li><strong>Reach the bottom of tall content.</strong> Oversized active items can scroll together without overlapping.</li>
+      <li><strong>Native when appropriate.</strong> Opt into <code>positionStrategy=&quot;auto&quot;</code> for eligible short, single items; other layouts fall back to fixed. Listeners, scheduling and observers are shared.</li>
+    </ul><h2>Start with the behavior you need</h2><div className="pattern-list">
       <a href="#replace"><strong>Replace sections</strong><span>Keep the current heading visible in a grouped list.</span></a>
       <a href="#stack"><strong>Stack sections</strong><span>Accumulate headings with automatic height coordination.</span></a>
       <a href="#ios-contact"><strong>Combine both</strong><span>Keep a list title above replacing section headings.</span></a>
-    </div><h2>When to use native CSS</h2><p>A single sticky header or a straightforward grouped list usually only needs <code>position: sticky</code>. Use this kit for coordinated variable-height headings, mixed modes or the measured total sticky height.</p></>}
+      <a href="#overflow"><strong>Oversized content</strong><span>Expose the bottom of content taller than the viewport.</span></a>
+    </div><h2>When to use native CSS</h2><p>For a simple layout, native <code>position: sticky</code> is a good choice when your target browsers support it. Choose this kit for coordinated dynamic headings, mixed modes, measured sticky height or a fixed implementation independent of CSS sticky.</p></>}
+    <section aria-labelledby="browser-support"><h2 id="browser-support">Browser support &amp; fallbacks</h2>
+      <p><strong>Native CSS sticky is optional.</strong> The default <code>positionStrategy=&quot;fixed&quot;</code> uses JavaScript and <code>position: fixed</code>. Opt-in <code>auto</code> falls back to fixed if sticky support, ResizeObserver or layout eligibility is missing.</p>
+      <p>Without ResizeObserver, fixed measurements refresh on scroll, window resize and React commits. Content changes while idle may wait until one of those updates.</p>
+      <p>React 17+ and an ES2018-capable JavaScript environment are required, along with the standard DOM APIs used by React and this library. This is not a promise of IE11 or universal legacy-browser support.</p>
+      <p>Regression tests cover Chromium, Firefox and WebKit, including simulated missing sticky support and ResizeObserver. Fixed offsets remain viewport-relative; ancestor transforms and overflow clipping still need care.</p>
+      <a href={`${repo}/blob/${sourceRef}/docs/browser-compatibility.md`}>Read the full browser compatibility guide</a>
+    </section>
     <h2>1. Install the package</h2><p>React 17 or newer is required.</p><div className="package-managers" role="group" aria-label="Package manager">{(['pnpm', 'npm', 'yarn'] as const).map(name => <button key={name} aria-pressed={manager === name} onClick={() => setManager(name)}>{name}</button>)}</div><CodeBlock code={command} language="shell" />
     <h2>2. Import the components and styles</h2><CodeBlock code={"import { StickyContainer, StickyItem } from 'react-sticky-kit';\nimport 'react-sticky-kit/style';"} />
     <h2>3. Wrap your section headings</h2><CodeBlock code={exampleCode('replace')!} />
