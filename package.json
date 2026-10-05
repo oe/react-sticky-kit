@@ -22,7 +22,7 @@
   "bugs": {
     "url": "https://github.com/oe/react-sticky-kit/issues"
   },
-  "homepage": "https://github.com/oe/react-sticky-kit#readme",
+  "homepage": "https://app.evecalm.com/react-sticky-kit/",
   "license": "MIT",
   "scripts": {
     "dev": "vite",

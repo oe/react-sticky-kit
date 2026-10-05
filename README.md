@@ -44,9 +44,13 @@ measurement and scroll logic.
   heights are measured automatically, including when content changes.
 - **Mixed:** keep a page title stacked while section headings replace below it.
 
-[Open the existing contact-list sandbox](https://codesandbox.io/p/sandbox/dreamy-hofstadter-v9dzfz).
-The repository demo also includes mixed modes, dynamic heights, nested groups and
-container boundaries; see [running the demo](#run-the-demo).
+[Open the live demo](https://app.evecalm.com/react-sticky-kit/) — no installation required.
+Try [replace](https://app.evecalm.com/react-sticky-kit/#replace),
+[stack](https://app.evecalm.com/react-sticky-kit/#stack), or
+[mixed modes](https://app.evecalm.com/react-sticky-kit/#mixed-mode).
+The demo also includes dynamic heights, nested groups and container boundaries.
+To edit an example, use the [contact-list sandbox](https://codesandbox.io/p/sandbox/dreamy-hofstadter-v9dzfz);
+see [running the demo](#run-the-demo) for local development.
 
 ## Installation
 

@@ -4,16 +4,16 @@
 uses relative asset URLs so it can be hosted under `/react-sticky-kit/` without a
 custom base-path rebuild. Hash navigation requires no server-side route fallback.
 
-## Initial static preview
+## Published demo
 
-A `gh-pages` branch contains the prepared static demo. A repository administrator
-can enable it under **Settings → Pages → Deploy from a branch**, selecting
-`gh-pages` and `/ (root)`. GitHub's initial build must finish before advertising
-`https://oe.github.io/react-sticky-kit/` as an available demo.
+The live demo is available at **https://app.evecalm.com/react-sticky-kit/**.
+GitHub Pages serves the generated `gh-pages` branch from `/ (root)`. The HTTPS
+page and all eight example routes have been verified in Chromium at mobile width.
+Users can open a specific example directly with `#replace`, `#stack` or
+`#mixed-mode`; no installation or code editor is required.
 
-The maintenance integration cannot enable the site: GitHub returned HTTP 403,
-“Resource not accessible by integration.” Generating the branch does not itself
-make the URL live.
+The deployed branch is a static snapshot. Source changes in a PR do not update
+it automatically. Use the workflow below for subsequent deployments after merge.
 
 ## Subsequent releases through GitHub Actions
 
@@ -23,6 +23,6 @@ The workflow builds the current source, uploads only `demo-dist`, and deploys th
 artifact. It is manually dispatched so documentation changes do not unexpectedly
 publish a new site. GitHub environment protection rules may require approval.
 
-Once the first deployment is verified, use its URL as the repository/npm homepage
-and the README's main demo link. Metadata changes reach npm with the next package
+The README and package homepage point to the verified live demo. Metadata changes
+reach npm with the next package
 release; the package version is intentionally unchanged in this documentation PR.
