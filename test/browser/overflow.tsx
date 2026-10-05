@@ -1,6 +1,6 @@
 import React, { StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { StickyContainer, StickyItem } from '../../src';
+const { StickyContainer, StickyItem } = await (new URLSearchParams(location.search).has('entry-auto') ? import('../../src/auto') : import('../../src'));
 function Fixture() {
   const query = new URLSearchParams(location.search);
   const [height, setHeight] = useState(query.has('short') ? 80 : 900);

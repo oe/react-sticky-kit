@@ -17,6 +17,7 @@ export interface IStickyItemHandle {
   el: HTMLElement;
   content: HTMLElement;
   canNative: boolean;
+  prepareFixed: () => void;
   applyNative: (top: number, zIndex: number) => void;
   mode: Exclude<IStickyMode, 'none'>;
   measure: (rect: DOMRect) => IStickyItemMeasurement;
@@ -26,6 +27,7 @@ export interface IStickyItemHandle {
 
 export interface IStickyGroupContextValue {
   baseZIndex: number;
+  getFixedItemFactory: () => typeof import('./fixed-layout.js').createFixedItem | undefined;
   register: (handle: IStickyItemHandle) => () => void;
   scheduleUpdate: () => void;
   mode: IStickyMode;

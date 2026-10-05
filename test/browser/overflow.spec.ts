@@ -1,4 +1,4 @@
-import { test, expect, type Locator, type Page } from '@playwright/test';
+import { test, expect, type Locator, type Page } from './test';
 const top = (node: Locator) => node.evaluate(e => e.getBoundingClientRect().top);
 async function scroll(page: Page, y: number) {
   await page.evaluate(y => window.scrollTo(0, y), y);

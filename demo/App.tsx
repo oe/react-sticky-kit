@@ -37,6 +37,11 @@ function GettingStarted({ installation }: { installation: boolean }) {
     </section>
     <h2>1. Install the package</h2><p>React 17 or newer is required.</p><div className="package-managers" role="group" aria-label="Package manager">{(['pnpm', 'npm', 'yarn'] as const).map(name => <button key={name} aria-pressed={manager === name} onClick={() => setManager(name)}>{name}</button>)}</div><CodeBlock code={command} language="shell" />
     <h2>2. Import the components and styles</h2><CodeBlock code={"import { StickyContainer, StickyItem } from 'react-sticky-kit';\nimport 'react-sticky-kit/style';"} />
+    <h2>Optional: load the fixed backend on demand</h2>
+    <CodeBlock code={"import { StickyContainer, StickyItem } from 'react-sticky-kit/auto';\nimport 'react-sticky-kit/style';"} />
+    <p>Both entries provide the full API. The auto entry defaults to native-first positioning and downloads fixed coordination when the browser or layout needs it. Your bundler must preserve dynamic imports as separate chunks for this to reduce the initial download.</p>
+    <p>Fallback loading keeps child state and an existing native position. Cold loading can delay first-frame fixed pinning; use the main entry when synchronous fixed positioning is required.</p>
+    <p><a href={`${repo}/blob/${sourceRef}/docs/native-loading.md`}>Compare entry points and loading tradeoffs</a></p>
     <h2>3. Wrap your section headings</h2><CodeBlock code={exampleCode('replace')!} />
     <div className="usage-note"><strong>Using Next.js or another SSR framework?</strong><p>Add <code>&apos;use client&apos;</code> to the component using the kit. Keep the stylesheet in the location your framework expects.</p></div>
     <p><a href={`${repo}/blob/main/docs/patterns-and-migration.md`}>Read the patterns and migration guide</a></p>

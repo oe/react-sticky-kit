@@ -23,7 +23,13 @@ try {
       `@types/react@${version.split('.')[0]}`, `@types/react-dom@${version.split('.')[0]}`, 'typescript@5.0.4'], consumer);
     const typecheck = `import React from 'react';
 import { StickyContainer, StickyItem, type IStickyMode } from 'react-sticky-kit';
+import { StickyContainer as AutoContainer, StickyItem as AutoItem } from 'react-sticky-kit/auto';
 import 'react-sticky-kit/style';
+const auto = React.createElement(AutoContainer, { defaultMode: 'stack', overflowBehavior: 'scroll',
+  offsetTop: 16, offsetBottom: 16, constraint: 'none', positionStrategy: 'fixed',
+  onStickyItemsHeightChange: (height: number) => void height,
+  children: React.createElement(AutoItem, { mode: 'replace', children: 'Header' }) });
+void auto;
 const mode: IStickyMode = 'stack';
 const element = React.createElement(StickyContainer, { defaultMode: mode, children:
   React.createElement(StickyItem, { children: 'Header' }) });
@@ -36,14 +42,22 @@ void result;
     run(process.execPath, [join(consumer, 'node_modules/typescript/bin/tsc'),
       '--noEmit', '--strict', '--module', 'NodeNext', '--target', 'ES2018',
       '--esModuleInterop', 'consumer.mts', 'consumer.cts'], consumer);
+    run(process.execPath, [join(consumer, 'node_modules/typescript/bin/tsc'),
+      '--noEmit', '--strict', '--module', 'ESNext', '--moduleResolution', 'Bundler',
+      '--target', 'ES2018', '--esModuleInterop', 'consumer.mts'], consumer);
     const require = createRequire(join(consumer, 'package.json'));
     const React = require('react');
     const ReactDOM = require('react-dom');
     const { renderToString } = require('react-dom/server');
     const library = require('react-sticky-kit');
+    const autoLibrary = require('react-sticky-kit/auto');
+    assert.equal(autoLibrary.StickyItem, library.StickyItem);
+    assert.match(renderToString(React.createElement(autoLibrary.StickyContainer, null,
+      React.createElement(library.StickyItem, null, 'Mixed entry'))), /Mixed entry/);
     const imported = await import(require.resolve('react-sticky-kit'));
     assert.equal(imported.StickyContainer, library.StickyContainer);
-    const element = React.createElement(library.StickyContainer, { defaultMode: 'stack' },
+    for (const entry of [library, autoLibrary]) {
+    const element = React.createElement(entry.StickyContainer, { defaultMode: 'stack' },
       React.createElement(library.StickyItem, null, 'Compatibility header'));
     assert.match(renderToString(element), /Compatibility header/);
     const dom = new JSDOM('<div id="root"></div>');
@@ -68,7 +82,15 @@ void result;
         root.render(element);
       }
     });
-    await act(async () => { const pending = callback; callback = undefined; pending?.(0); });
+    // Dynamic CJS fallback loading can settle after the initial animation frame.
+    for (let attempt = 0; attempt < 20 && !document.querySelector('.oe-sticky-content.is-sticky'); attempt++) {
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 10));
+        const pending = callback;
+        callback = undefined;
+        pending?.(0);
+      });
+    }
     assert.ok(document.querySelector('.oe-sticky-content.is-sticky'));
     assert.equal(document.querySelector('.oe-sticky-content').style.top, '0px');
     await act(async () => {
@@ -78,7 +100,8 @@ void result;
     });
     assert.equal(callback, undefined);
     dom.window.close();
-    console.log(`Packed package: React ${version} SSR, import/require, TypeScript 5 and sticky lifecycle passed.`);
+    }
+    console.log(`Packed package: React ${version} SSR, import/require, TypeScript 5 NodeNext/Bundler and both sticky lifecycles passed.`);
   }
 } finally {
   await rm(directory, { recursive: true, force: true });
