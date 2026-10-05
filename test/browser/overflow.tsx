@@ -5,12 +5,13 @@ function Fixture() {
   const query = new URLSearchParams(location.search);
   const [height, setHeight] = useState(query.has('short') ? 80 : 900);
   const [multiple, setMultiple] = useState(query.has('multiple'));
+  const [inlineTop, setInlineTop] = useState<number>();
   const [stickyHeight, setStickyHeight] = useState(0);
   const [automatic, setAutomatic] = useState(query.has('auto'));
   const [enabled, setEnabled] = useState(true);
   return <>
     <div style={{ position: 'fixed', top: 0, right: 0, zIndex: 10000 }}>
-      <span data-testid="sticky-height">{stickyHeight}</span><button onClick={() => setAutomatic(false)}>Fixed strategy</button><button onClick={() => setHeight(100)}>Shrink</button><button onClick={() => setHeight(900)}>Grow</button>
+      <span data-testid="sticky-height">{stickyHeight}</span><button onClick={() => setInlineTop(100)}>Inline override</button><button onClick={() => setAutomatic(false)}>Fixed strategy</button><button onClick={() => setHeight(100)}>Shrink</button><button onClick={() => setHeight(900)}>Grow</button>
       <button onClick={() => setMultiple(!multiple)}>Toggle items</button><button onClick={() => setEnabled(false)}>Disable</button>
     </div>
     <div style={{ height: 200 }} />
@@ -18,7 +19,7 @@ function Fixture() {
       onStickyItemsHeightChange={query.has('callback') ? setStickyHeight : undefined}
       offsetTop={20} offsetBottom={30} positionStrategy={automatic ? 'auto' : 'fixed'}
       overflowBehavior={query.has('pin') || query.has('item-overflow') ? 'pin' : 'scroll'} baseZIndex={400}>
-      <StickyItem data-testid="a" overflowBehavior={query.has('item-overflow') ? 'scroll' : undefined}><div style={{ height, background: '#daeaea' }}>First content</div></StickyItem>
+      <StickyItem data-testid="a" style={inlineTop !== undefined ? { top: inlineTop } : query.has('inline') ? { top: 0, zIndex: 0 } : undefined} overflowBehavior={query.has('item-overflow') ? 'scroll' : undefined}><div style={{ height, background: '#daeaea' }}>First content</div></StickyItem>
       <div style={{ height: 300 }} />
       {multiple && <StickyItem data-testid="b"><div style={{ height: 400, background: '#eaeada' }}>Second content</div></StickyItem>}
       <div style={{ height: 1800 }} />

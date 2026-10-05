@@ -96,8 +96,11 @@ export function StickyItem({ mode, overflowBehavior = 'pin', children, className
   useEffect(() => {
     if (measurementRef.current) {
       const style = rest.style;
-      measurementRef.current.canNative = normalHeight === undefined && !style?.position &&
-        !style?.top && !style?.bottom && !style?.zIndex;
+      measurementRef.current.canNative = normalHeight === undefined && style?.position === undefined &&
+        style?.top === undefined && style?.bottom === undefined && style?.zIndex === undefined;
+      if (!measurementRef.current.canNative && wrapperRef.current?.classList.contains('is-native-sticky')) {
+        measurementRef.current.apply(null);
+      }
       measurementRef.current.invalidate();
     }
     scheduleUpdate?.();

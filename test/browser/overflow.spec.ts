@@ -142,3 +142,17 @@ test('auto preserves height notifications and uses fixed when ResizeObserver is 
   await expect(page.getByTestId('a')).toHaveCSS('position', 'relative');
   await expect(page.getByTestId('a').locator('.oe-sticky-content')).toHaveCSS('position', 'fixed');
 });
+test('zero-valued inline positioning overrides also exclude native selection', async ({ page }) => {
+  await page.goto('/overflow.html?auto&short&inline');
+  await scroll(page, 500);
+  await expect(page.getByTestId('a')).toHaveCSS('position', 'relative');
+  await expect(page.getByTestId('a').locator('.oe-sticky-content')).toHaveCSS('top', '20px');
+});
+test('changing inline positioning clears native layout before measuring fixed coordinates', async ({ page }) => {
+  await page.goto('/overflow.html?auto&short');
+  await scroll(page, 500);
+  await expect(page.getByTestId('a')).toHaveCSS('position', 'sticky');
+  await page.getByRole('button', { name: 'Inline override' }).click();
+  await expect(page.getByTestId('a')).toHaveCSS('position', 'relative');
+  await expect(page.getByTestId('a').locator('.oe-sticky-content')).toHaveCSS('top', '20px');
+});

@@ -119,7 +119,7 @@ replacement for scroll-container-relative sticky behavior. Ancestor transforms
 and overflow clipping can affect fixed positioning.
 
 React 17/18/19, SSR and TypeScript 5 NodeNext consumers are covered by package
-checks. The ESM artifact is approximately **4.40 kB gzip**, excluding React and CSS;
+checks. The ESM artifact is approximately **4.43 kB gzip**, excluding React and CSS;
 there are no additional runtime dependencies. See the
 [performance audit](docs/performance.md) for methods and tradeoffs.
 

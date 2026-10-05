@@ -45,7 +45,7 @@ conditions hold:
 - There is one registered sticky item, directly inside the container.
 - Its content and offsets fit inside the viewport; its wrapper is not stretched.
 - The item has no explicit inline height, position, top, bottom or z-index override.
-- No ancestor establishes an overflow scroll/clipping boundary.
+- No ancestor establishes an overflow auto, scroll, hidden or overlay boundary.
 - The container uses its default boundary constraint.
 
 Other cases use the existing fixed positioning path. Native CSS controls width
@@ -83,6 +83,6 @@ not equate observer counts to CPU time or memory. Zero geometry reads does not
 mean zero browser layout or paint work. These short-item results do not establish
 that our long-content implementation is faster than Sticky Box.
 
-The project build's ESM gzip grows from 3.48 KB to approximately 4.40 KB, and CSS
+The project build's ESM gzip grows from 3.48 KB to approximately 4.43 KB, and CSS
 from 0.09 KB to 0.14 KB. The feature adds no dependency. It does not achieve a
 smaller bundle than Sticky Box; size remains a tradeoff for the expanded API.
