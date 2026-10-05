@@ -6,7 +6,7 @@ const source = fileURLToPath(new URL('./src', import.meta.url));
 
 export default defineConfig(({ command }) => ({
   ...(command === 'serve' ? { root: 'demo' } : {}),
-  plugins: [react({ jsxRuntime: 'classic' })],
+  plugins: [react({ jsxRuntime: command === 'serve' ? 'automatic' : 'classic' })],
   resolve: { alias: { '@': source } },
   build: {
     target: 'es2018',
