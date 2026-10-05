@@ -1,4 +1,5 @@
 import React from 'react';
+import OverflowDemo from './OverflowDemo';
 import ContactListDemo from './ContactListDemo';
 import MixedModeDemo from './MixedModeDemo';
 import NestedStickyDemo from './NestedStickyDemo';
@@ -10,6 +11,7 @@ import SectionModesDemo from './SectionModesDemo';
 export const examples = [
   { hash: 'replace', name: 'Replace sections', description: 'Keep the current section in view. As you scroll, the next heading replaces the previous one.', hint: 'Scroll past a section heading to pin it. The next heading takes its place.', component: <SectionModesDemo mode="replace" /> },
   { hash: 'stack', name: 'Stack sections', description: 'Keep reached headings together. Each new heading sits below the measured height of the ones above it.', hint: 'Scroll through several sections to see their headings accumulate.', component: <SectionModesDemo mode="stack" /> },
+  { hash: 'overflow', name: 'Oversized content', description: 'Read content taller than the viewport without losing its bottom. Reverse scrolling without a jump.', hint: 'Short single items can use native sticky; tall or multiple items use fixed coordination. Toggle the controls to compare.', component: <OverflowDemo /> },
   { hash: 'ios-contact', name: 'Contact list', description: 'Keep a list title in place while alphabetical section headings replace beneath it.', hint: 'The Contacts title uses stack mode; the letter headings use replace mode.', component: <ContactListDemo /> },
   { hash: 'mixed-mode', name: 'Mixed modes', description: 'Combine stack, replace and ordinary flowing content in a single container.', hint: 'Change the offset or the dynamic section mode, then scroll to see the result.', component: <MixedModeDemo /> },
   { hash: 'nested', name: 'Nested containers', description: 'Coordinate an inner section list with the measured height of its outer sticky headings.', hint: 'Inner headings replace below the outer title and active outer heading.', component: <NestedStickyDemo /> },
@@ -23,7 +25,7 @@ export function exampleCode(hash: string) {
   return null;
 }
 export const sourceFiles: Record<string, string> = {
-  replace: 'SectionModesDemo.tsx', stack: 'SectionModesDemo.tsx', 'ios-contact': 'ContactListDemo.tsx',
+  overflow: 'OverflowDemo.tsx', replace: 'SectionModesDemo.tsx', stack: 'SectionModesDemo.tsx', 'ios-contact': 'ContactListDemo.tsx',
   'mixed-mode': 'MixedModeDemo.tsx', nested: 'NestedStickyDemo.tsx', dynamic: 'DynamicStickyDemo.tsx',
   'dynamic-offset': 'DynamicOffsetDemo.tsx', constraint: 'ConstraintDemo.tsx',
 };

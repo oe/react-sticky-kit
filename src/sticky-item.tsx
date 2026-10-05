@@ -28,8 +28,16 @@ export function StickyItem({ mode, children, className, ...rest }: IStickyItemPr
     const automaticHeight = normalHeight === undefined || ['auto', 'initial', 'unset', 'revert',
       'revert-layer', 'fit-content', 'min-content', 'max-content'].includes(String(normalHeight));
     let sticky = false;
+    let nativeTop: number | null = null;
+    let nativeZIndex: number;
     let previousLayout: Parameters<IStickyItemHandle['apply']>[0] = null;
     const reset = () => {
+      if (nativeTop !== null) {
+        nativeTop = null;
+        wrapper.classList.remove('is-native-sticky');
+        wrapper.style.removeProperty('--oe-sticky-top');
+        wrapper.style.removeProperty('--oe-sticky-z');
+      }
       if (!sticky) return;
       sticky = false;
       previousLayout = null;
@@ -49,6 +57,7 @@ export function StickyItem({ mode, children, className, ...rest }: IStickyItemPr
         reset();
         return;
       }
+      if (nativeTop !== null) reset();
       const { top, wrapperHeight, width, left, index } = layout;
       if (previousLayout && previousLayout.top === top && previousLayout.wrapperHeight === wrapperHeight &&
         previousLayout.width === width && previousLayout.left === left && previousLayout.index === index) return;
@@ -64,7 +73,16 @@ export function StickyItem({ mode, children, className, ...rest }: IStickyItemPr
         content.classList.add('is-sticky');
       }
     };
-    const handle: IStickyItemHandle = { el: wrapper, content, mode: effectiveMode, apply, measure, invalidate: () => { box = null; previousLayout = null; } };
+    const applyNative = (top: number, zIndex: number) => {
+      if (nativeTop === top && nativeZIndex === zIndex) return;
+      reset();
+      nativeTop = top;
+      nativeZIndex = zIndex;
+      wrapper.style.setProperty('--oe-sticky-top', `${top}px`);
+      wrapper.style.setProperty('--oe-sticky-z', String(zIndex));
+      wrapper.classList.add('is-native-sticky');
+    };
+    const handle: IStickyItemHandle = { canNative: false, applyNative, el: wrapper, content, mode: effectiveMode, apply, measure, invalidate: () => { box = null; previousLayout = null; } };
     measurementRef.current = handle;
     const unregister = register(handle);
     return () => {
@@ -75,7 +93,15 @@ export function StickyItem({ mode, children, className, ...rest }: IStickyItemPr
   }, [register, effectiveMode, baseZIndex, normalHeight]);
 
   useEffect(() => {
-    measurementRef.current?.invalidate();
+    if (measurementRef.current) {
+      const style = rest.style;
+      measurementRef.current.canNative = normalHeight === undefined && style?.position === undefined &&
+        style?.top === undefined && style?.bottom === undefined && style?.zIndex === undefined;
+      if (!measurementRef.current.canNative && wrapperRef.current?.classList.contains('is-native-sticky')) {
+        measurementRef.current.apply(null);
+      }
+      measurementRef.current.invalidate();
+    }
     scheduleUpdate?.();
   });
 

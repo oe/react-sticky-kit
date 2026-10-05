@@ -1,6 +1,7 @@
 type Write = () => (() => void) | void;
 type Client = { read: () => Write | undefined; resize: () => void };
 const clients = new Set<Client>();
+const scrollClients = new Set<Client>();
 const pending = new Set<Client>();
 let frame: number | null = null;
 
@@ -10,7 +11,7 @@ function schedule(client: Client) {
   frame ??= requestAnimationFrame(flush);
 }
 function scroll() {
-  for (const client of clients) schedule(client);
+  for (const client of scrollClients) schedule(client);
 }
 function resize() {
   for (const client of clients) {
@@ -24,29 +25,29 @@ function flush() {
   pending.clear();
   const writes: { client: Client; write: Write }[] = [];
   const notifications: { client: Client; notify: () => void }[] = [];
-  const errors: unknown[] = [];
+  let errors: unknown[] | undefined;
   // Read every container before any container writes, including nested groups.
   for (const client of batch) {
     if (!clients.has(client)) continue;
     try {
       const write = client.read();
       if (write) writes.push({ client, write });
-    } catch (error) { errors.push(error); }
+    } catch (error) { (errors ??= []).push(error); }
   }
   for (const { client, write } of writes) {
     if (!clients.has(client)) continue;
     try {
       const notify = write();
       if (notify) notifications.push({ client, notify });
-    } catch (error) { errors.push(error); }
+    } catch (error) { (errors ??= []).push(error); }
   }
   // Consumer callbacks can synchronously change or unmount another container.
   for (const { client, notify } of notifications) {
     if (!clients.has(client)) continue;
-    try { notify(); } catch (error) { errors.push(error); }
+    try { notify(); } catch (error) { (errors ??= []).push(error); }
   }
   // A user callback must not prevent other containers from updating.
-  if (errors.length) throw errors[0];
+  if (errors) throw errors[0];
 }
 
 export function subscribeUpdates(read: Client['read'], invalidate: () => void) {
@@ -56,11 +57,17 @@ export function subscribeUpdates(read: Client['read'], invalidate: () => void) {
     window.addEventListener('resize', resize, { passive: true });
   }
   clients.add(client);
+  scrollClients.add(client);
   schedule(client);
   return {
     schedule: () => schedule(client),
+    setScrollEnabled: (enabled: boolean) => {
+      if (enabled) scrollClients.add(client);
+      else scrollClients.delete(client);
+    },
     stop: () => {
       clients.delete(client);
+      scrollClients.delete(client);
       pending.delete(client);
       if (!pending.size && frame !== null) {
         cancelAnimationFrame(frame);
