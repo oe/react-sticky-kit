@@ -1,4 +1,5 @@
 import React from 'react';
+import CodeBlock from './CodeBlock';
 import { StickyContainer, StickyItem, type IStickyMode } from '../src';
 
 const sections = [
@@ -12,7 +13,7 @@ export default function SectionModesDemo({ mode }: { mode: IStickyMode }) {
     <StickyContainer defaultMode={mode}>
       {sections.map((section, index) => <section key={section.title}>
         <StickyItem><h2 className="section-heading"><span className="section-number">0{index + 1}</span>{section.title}<span className="mode-label">{mode}</span></h2></StickyItem>
-        <div className="section-body">{section.rows.map(([title, description, code]) => <div className="section-row" key={title}><h3>{title}</h3><p>{description}</p><pre><code>{code}</code></pre></div>)}</div>
+        <div className="section-body">{section.rows.map(([title, description, code]) => <div className="section-row" key={title}><h3>{title}</h3><p>{description}</p><CodeBlock code={code} language={code.startsWith('pnpm') ? 'shell' : 'tsx'} compact /></div>)}</div>
       </section>)}
     </StickyContainer>
     <div className="section-outro">You have reached the container boundary. Keep scrolling to see the headings return to the document flow.</div>
