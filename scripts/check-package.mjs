@@ -9,11 +9,7 @@ import vm from 'node:vm';
 const require = createRequire(import.meta.url);
 const esm = await import('react-sticky-kit');
 const cjs = require('react-sticky-kit');
-const autoEsm = await import('react-sticky-kit/auto');
-const autoCjs = require('react-sticky-kit/auto');
-assert.equal(autoEsm.StickyContainer, autoCjs.StickyContainer);
-assert.equal(esm.StickyItem, autoEsm.StickyItem);
-for (const library of [esm, cjs, autoEsm, autoCjs, await import('../dist/react-sticky-auto.es.js')]) {
+for (const library of [esm, cjs]) {
   assert.equal(typeof library.StickyContainer, 'function');
   assert.equal(typeof library.StickyItem, 'function');
   const html = renderToString(React.createElement(library.StickyContainer, { className: 'custom' },
@@ -24,7 +20,7 @@ for (const library of [esm, cjs, autoEsm, autoCjs, await import('../dist/react-s
 for (const style of ['react-sticky-kit/style', 'react-sticky-kit/dist/style.css']) {
   assert.match(await readFile(require.resolve(style), 'utf8'), /position:fixed/);
 }
-for (const name of ['react-sticky-auto.es.js', 'react-sticky-auto.cjs', 'react-sticky.es.js', 'react-sticky.cjs', 'react-sticky.umd.js']) {
+for (const name of ['react-sticky.es.js', 'react-sticky.cjs', 'react-sticky.umd.js']) {
   const content = await readFile(new URL(`../dist/${name}`, import.meta.url), 'utf8');
   assert.match(content, /^['"]use client['"]/);
   assert.doesNotMatch(content, /react\/jsx-runtime/);

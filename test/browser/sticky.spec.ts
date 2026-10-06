@@ -1,6 +1,4 @@
-import { test, expect } from './test';
-
-
+import { test, expect } from '@playwright/test';
 
 test('first activation, stacking, dynamic height, offset and disabling', async ({ page }) => {
   await page.goto('/fixture.html');

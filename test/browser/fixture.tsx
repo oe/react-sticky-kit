@@ -1,7 +1,6 @@
 import React, { StrictMode, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import type { IStickyMode } from '../../src';
-const { StickyContainer, StickyItem } = await (new URLSearchParams(location.search).has('entry-auto') ? import('../../src/auto') : import('../../src'));
+import { StickyContainer, StickyItem, type IStickyMode } from '../../src';
 
 function Fixture() {
   const [height, setHeight] = useState(40);
@@ -10,7 +9,7 @@ function Fixture() {
   const [enabled, setEnabled] = useState(true);
   const query = new URLSearchParams(location.search);
   const mode = (query.get('mode') ?? 'stack') as IStickyMode;
-  const content = <StickyContainer positionStrategy="fixed" data-testid="container" className="custom" defaultMode={enabled ? mode : 'none'}
+  const content = <StickyContainer data-testid="container" className="custom" defaultMode={enabled ? mode : 'none'}
     offsetTop={offset} constraint={query.has('unconstrained') ? 'none' : undefined}>
     {(reversed ? ['b', 'a'] : ['a', 'b']).map(key => <React.Fragment key={key}>
       <StickyItem data-testid={key}><div style={{ height: key === 'a' ? height : 50, background: '#eee' }}>{key}</div></StickyItem>
@@ -18,10 +17,10 @@ function Fixture() {
     </React.Fragment>)}
   </StickyContainer>;
   if (query.has('nested')) return <>
-    <StickyContainer positionStrategy="fixed" data-testid="outer">
+    <StickyContainer data-testid="outer">
       <StickyItem data-testid="outer-header"><div style={{ height: 30 }}>Outer</div></StickyItem>
       <div style={{ height: 200 }}>Before inner</div>
-      <StickyContainer positionStrategy="fixed" offsetTop={30}>
+      <StickyContainer offsetTop={30}>
         <StickyItem data-testid="inner-header"><div style={{ height: 40 }}>Inner</div></StickyItem>
         <div style={{ height: 200 }}>Inner body</div>
       </StickyContainer>

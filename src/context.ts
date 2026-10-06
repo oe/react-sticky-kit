@@ -27,7 +27,6 @@ export interface IStickyItemHandle {
 
 export interface IStickyGroupContextValue {
   baseZIndex: number;
-  getFixedItemFactory: () => typeof import('./fixed-layout.js').createFixedItem | undefined;
   register: (handle: IStickyItemHandle) => () => void;
   scheduleUpdate: () => void;
   mode: IStickyMode;

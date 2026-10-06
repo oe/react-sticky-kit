@@ -1,4 +1,4 @@
-import { test, expect, type Locator, type Page } from './test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
 const top = (node: Locator) => node.evaluate(e => e.getBoundingClientRect().top);
 async function scroll(page: Page, y: number) {
   await page.evaluate(y => window.scrollTo(0, y), y);
@@ -196,3 +196,22 @@ test('vertically stretched flex items stay fixed without idle geometry work', as
   await page.getByRole('button', { name: 'Shrink' }).click();
   await expect(wrapper).toHaveCSS('position', 'sticky');
 });
+
+for (const replace of [false, true]) {
+  test(`native-to-fixed transition preserves flow order and state in ${replace ? 'replace' : 'stack'} mode`, async ({ page }) => {
+    await page.goto(`/overflow.html?auto&short${replace ? '&replace' : ''}`);
+    const a = page.getByTestId('a');
+    const input = page.getByRole('textbox', { name: 'Preserved input' });
+    await expect(a).toHaveCSS('position', 'sticky');
+    await input.fill('retained');
+    await input.evaluate(element => element.setAttribute('data-original', 'yes'));
+    await scroll(page, 700);
+    await page.getByRole('button', { name: 'Toggle items' }).click();
+    const b = page.getByTestId('b').locator('.oe-sticky-content');
+    await expect(b).toHaveCSS('position', 'fixed');
+    await expect(b).toHaveCSS('top', replace ? '20px' : '100px');
+    await expect(a.locator('.oe-sticky-content')).toHaveCSS('position', replace ? 'static' : 'fixed');
+    await expect(input).toHaveValue('retained');
+    await expect(input).toHaveAttribute('data-original', 'yes');
+  });
+}

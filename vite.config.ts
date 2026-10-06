@@ -11,11 +11,11 @@ export default defineConfig(({ command }) => ({
   build: {
     target: 'es2018',
     lib: {
-      entry: { 'react-sticky': `${source}/index.tsx`, 'react-sticky-auto': `${source}/auto.tsx` },
+      entry: `${source}/index.tsx`,
       name: 'ReactSticky',
-      formats: ['es', 'cjs'],
+      formats: ['es', 'cjs', 'umd'],
       cssFileName: 'style',
-      fileName: (format, name) => format === 'cjs' ? `${name}.cjs` : `${name}.es.js`,
+      fileName: format => format === 'cjs' ? 'react-sticky.cjs' : `react-sticky.${format}.js`,
     },
     rolldownOptions: {
       external: ['react', 'react-dom'],

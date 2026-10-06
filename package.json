@@ -26,10 +26,10 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && vite build --config vite.umd.config.ts && tsc -p tsconfig.build.json && node scripts/build-types.mjs",
+    "build": "vite build && tsc -p tsconfig.build.json && node scripts/build-types.mjs",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
-    "lint": "eslint src demo test scripts vite.config.ts vite.demo.config.ts vitest.config.ts playwright.config.ts vite.umd.config.ts",
+    "lint": "eslint src demo test scripts vite.config.ts vite.demo.config.ts vitest.config.ts playwright.config.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage",
@@ -38,8 +38,7 @@
     "test:browser": "playwright test",
     "prepublishOnly": "pnpm type-check && pnpm lint && pnpm test && pnpm build && pnpm check:package",
     "check:compatibility": "node scripts/check-compatibility.mjs",
-    "build:demo": "vite build --config vite.demo.config.ts",
-    "measure:bundle": "node scripts/measure-bundle.mjs"
+    "build:demo": "vite build --config vite.demo.config.ts"
   },
   "files": [
     "dist"
@@ -69,27 +68,7 @@
       }
     },
     "./style": "./dist/style.css",
-    "./dist/style.css": "./dist/style.css",
-    "./auto": {
-      "node": {
-        "import": {
-          "types": "./dist/auto.d.cts",
-          "default": "./dist/react-sticky-auto.cjs"
-        },
-        "require": {
-          "types": "./dist/auto.d.cts",
-          "default": "./dist/react-sticky-auto.cjs"
-        }
-      },
-      "import": {
-        "types": "./dist/auto.d.ts",
-        "default": "./dist/react-sticky-auto.es.js"
-      },
-      "require": {
-        "types": "./dist/auto.d.cts",
-        "default": "./dist/react-sticky-auto.cjs"
-      }
-    }
+    "./dist/style.css": "./dist/style.css"
   },
   "peerDependencies": {
     "react": ">=17.0.0",

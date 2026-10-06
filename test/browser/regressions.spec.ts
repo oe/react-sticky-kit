@@ -1,6 +1,4 @@
-import { test, expect } from './test';
-
-
+import { test, expect } from '@playwright/test';
 
 test('keeps shared subscriptions working after a sibling container unmounts', async ({ page }) => {
   await page.goto('/regressions.html?case=multi');

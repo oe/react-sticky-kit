@@ -17,37 +17,64 @@ export function StickyItem({ mode, children, className, ...rest }: IStickyItemPr
   const normalHeight = rest.style?.height;
   const measurementRef = useRef<IStickyItemHandle | null>(null);
   const scheduleUpdate = context?.scheduleUpdate;
-  const getFixedItemFactory = context?.getFixedItemFactory;
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
     const content = contentRef.current;
     if (!wrapper || !content) return;
     const originalHeight = typeof normalHeight === 'number' ? `${normalHeight}px` : normalHeight ?? '';
-    if (wrapper.style.height !== originalHeight) wrapper.style.height = originalHeight;
+    setStyle(wrapper, 'height', originalHeight);
     if (!register || !effectiveMode || effectiveMode === 'none') return;
-    let fixed: import('./fixed-layout.js').FixedItem | undefined;
+    const automaticHeight = normalHeight === undefined || ['auto', 'initial', 'unset', 'revert',
+      'revert-layer', 'fit-content', 'min-content', 'max-content'].includes(String(normalHeight));
+    let sticky = false;
     let nativeTop: number | null = null;
     let nativeZIndex: number;
-    const fixedItem = () => {
-      if (fixed) return fixed;
-      const factory = getFixedItemFactory?.();
-      if (!factory) throw new Error('Fixed positioning engine is not loaded.');
-      return fixed = factory(wrapper, content, normalHeight, baseZIndex, effectiveMode);
+    let previousLayout: Parameters<IStickyItemHandle['apply']>[0] = null;
+    const prepareFixed = () => {
+      if (nativeTop !== null) {
+        nativeTop = null;
+        wrapper.classList.remove('is-native-sticky');
+        wrapper.style.removeProperty('--oe-sticky-top');
+        wrapper.style.removeProperty('--oe-sticky-z');
+      }
     };
-    const resetNative = () => {
-      if (nativeTop === null) return;
-      nativeTop = null;
-      wrapper.classList.remove('is-native-sticky');
-      wrapper.style.removeProperty('--oe-sticky-top');
-      wrapper.style.removeProperty('--oe-sticky-z');
+    const reset = () => {
+      prepareFixed();
+      if (!sticky) return;
+      sticky = false;
+      previousLayout = null;
+      content.classList.remove('is-sticky');
+      wrapper.style.height = originalHeight;
+      for (const property of ['top', 'left', 'width', 'z-index']) content.style.removeProperty(property);
     };
-    const reset = () => { resetNative(); fixed?.apply(null); };
-    const measure: IStickyItemHandle['measure'] = rect => fixedItem().measure(rect);
+    let box: ReturnType<typeof readBox> | null = null;
+    const measure: IStickyItemHandle['measure'] = rect => {
+      box ??= readBox(wrapper, content);
+      const height = content.getBoundingClientRect().height;
+      return { height, wrapperHeight: height + box.heightInset,
+        width: Math.max(0, rect.width - box.widthInset), left: rect.left + box.leftInset };
+    };
     const apply: IStickyItemHandle['apply'] = layout => {
-      if (!layout) { reset(); return; }
-      resetNative();
-      fixedItem().apply(layout);
+      if (layout === null) {
+        reset();
+        return;
+      }
+      if (nativeTop !== null) reset();
+      const { top, wrapperHeight, width, left, index } = layout;
+      if (previousLayout && previousLayout.top === top && previousLayout.wrapperHeight === wrapperHeight &&
+        previousLayout.width === width && previousLayout.left === left && previousLayout.index === index) return;
+      previousLayout = layout;
+      if (automaticHeight) setStyle(wrapper, 'height', `${wrapperHeight}px`);
+      setStyle(content, 'top', `${top}px`);
+      setStyle(content, 'left', `${left}px`);
+      setStyle(content, 'width', `${width}px`);
+      setStyle(content, 'zIndex', `${(baseZIndex ?? 200) + (effectiveMode === 'replace' ? -index : index)}`);
+      // Keep the placeholder in flow before switching position to avoid scroll jumps.
+      if (!sticky) {
+        sticky = true;
+        content.classList.add('is-sticky');
+      }
     };
     const applyNative = (top: number, zIndex: number) => {
       if (nativeTop === top && nativeZIndex === zIndex) return;
@@ -58,7 +85,7 @@ export function StickyItem({ mode, children, className, ...rest }: IStickyItemPr
       wrapper.style.setProperty('--oe-sticky-z', String(zIndex));
       wrapper.classList.add('is-native-sticky');
     };
-    const handle: IStickyItemHandle = { canNative: false, prepareFixed: resetNative, applyNative, el: wrapper, content, mode: effectiveMode, apply, measure, invalidate: () => fixed?.invalidate() };
+    const handle: IStickyItemHandle = { canNative: false, prepareFixed, applyNative, el: wrapper, content, mode: effectiveMode, apply, measure, invalidate: () => { box = null; previousLayout = null; } };
     measurementRef.current = handle;
     const unregister = register(handle);
     return () => {
@@ -66,7 +93,7 @@ export function StickyItem({ mode, children, className, ...rest }: IStickyItemPr
       unregister();
       reset();
     };
-  }, [register, effectiveMode, baseZIndex, normalHeight, getFixedItemFactory]);
+  }, [register, effectiveMode, baseZIndex, normalHeight]);
 
   useEffect(() => {
     if (measurementRef.current) {
@@ -86,4 +113,22 @@ export function StickyItem({ mode, children, className, ...rest }: IStickyItemPr
       <div className="oe-sticky-content" ref={contentRef}>{children}</div>
     </div>
   );
+}
+
+function setStyle(element: HTMLElement, property: 'height' | 'top' | 'left' | 'width' | 'zIndex', value: string) {
+  if (element.style[property] !== value) element.style[property] = value;
+}
+
+function readBox(wrapper: HTMLElement, content: HTMLElement) {
+  const outer = getComputedStyle(wrapper);
+  const inner = getComputedStyle(content);
+  const number = (value: string) => Number.parseFloat(value) || 0;
+  const horizontal = (style: CSSStyleDeclaration) => number(style.paddingLeft) + number(style.paddingRight) +
+    number(style.borderLeftWidth) + number(style.borderRightWidth);
+  return {
+    heightInset: outer.boxSizing === 'border-box' ? number(outer.paddingTop) + number(outer.paddingBottom) +
+      number(outer.borderTopWidth) + number(outer.borderBottomWidth) : 0,
+    widthInset: horizontal(outer) + (inner.boxSizing === 'border-box' ? 0 : horizontal(inner)),
+    leftInset: number(outer.paddingLeft) + number(outer.borderLeftWidth),
+  };
 }

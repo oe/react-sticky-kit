@@ -228,39 +228,17 @@ Open [http://localhost:5173](http://localhost:5173) and switch between demo page
 * [Dynamic offsetTop](http://localhost:5173/#dynamic-offset) dynamic offsetTop that adapts to header height changes
 * [Constraint Demo](http://localhost:5173/#constraint) demo showing different constraint options
 
-## Full-feature native-first entry
+## Native positioning and bundle size
 
-```tsx
-import { StickyContainer, StickyItem } from 'react-sticky-kit/auto';
-import 'react-sticky-kit/style';
-```
+Use the existing entry and set `positionStrategy="auto"` to opt into native
+sticky for eligible layouts. All modes, offsets, boundaries, long-content
+scrolling and callbacks remain available through synchronous fixed fallback.
+Switching strategies retains child state.
 
-Both entries support the complete component API: stack/replace/mixed modes,
-long-content scrolling, offsets, container boundaries, nesting and height callbacks.
-The main entry keeps its synchronous fixed default. The `/auto` entry defaults to
-native-first positioning and loads the fixed backend only when the browser or
-layout needs it. Setting `positionStrategy="auto"` on the main entry selects native
-positioning too, but does **not** remove fixed code from its bundle.
-
-A bundler that preserves dynamic imports as separate chunks (such as Vite or
-webpack) provides the loading reduction. Browser capability checks choose the
-backend at runtime; a bundler cannot infer CSS support from JSX props. Builds that
-inline dynamic imports keep all code in one download. Direct browser ESM use
-requires native dynamic-import support; other targets need a bundler that emits
-a compatible chunk loader. Using the main-entry container also
-includes the synchronous backend.
-
-Fallback loading starts as soon as a mounted layout is found ineligible, including
-before it enters the viewport. It does not remount children. An already active
-native item stays positioned while its fallback downloads. If fixed is required
-on the first frame, content remains in normal flow until that download completes;
-a cold or failed network request can delay pinning. Choose the main entry when
-synchronous fixed positioning is required. Chunk failures are reported once and
-content remains readable; recovering a failed backend request requires a page reload.
-
-Supporting native sticky alone does not make every layout eligible: multiple
-headings, tall groups and certain ancestor layouts still need fixed coordination.
-See [loading behavior and measured tradeoffs](docs/native-loading.md).
+Native positioning reduces JavaScript work during scrolling; it does not remove
+fixed code from the download. The single entry includes both implementations,
+so fallback has no additional chunk request or cold-loading delay. Bundlers cannot
+infer browser CSS support or eliminate the backend from a runtime JSX prop.
 
 ## Browser support and fallbacks
 

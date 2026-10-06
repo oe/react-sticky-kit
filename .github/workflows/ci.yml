@@ -41,5 +41,4 @@ jobs:
       - run: npm install --global pnpm@12.8.1
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium firefox webkit
-      - run: pnpm build
       - run: pnpm test:browser

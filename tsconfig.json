@@ -21,12 +21,6 @@
     "paths": {
       "@/*": [
         "./src/*"
-      ],
-      "#built-auto": [
-        "./src/auto.tsx"
-      ],
-      "#built-main": [
-        "./src/index.tsx"
       ]
     },
     "types": [
@@ -41,8 +35,7 @@
     "vitest.config.ts",
     "eslint.config.js",
     "scripts",
-    "playwright.config.ts",
-    "vite.umd.config.ts"
+    "playwright.config.ts"
   ],
   "exclude": [
     "node_modules",

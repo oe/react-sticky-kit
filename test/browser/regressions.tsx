@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-const { StickyContainer, StickyItem } = await (new URLSearchParams(location.search).has('entry-auto') ? import('../../src/auto') : import('../../src'));
+import { StickyContainer, StickyItem } from '../../src';
 
 const query = new URLSearchParams(location.search);
 const kind = query.get('case');
@@ -12,11 +12,11 @@ function Fixture() {
     <button style={{ position: 'fixed', right: 0, top: 0, zIndex: 10000 }} onClick={() => setFirstVisible(false)}>Remove first</button>
     <div style={{ height: 6000 }}>
       <div data-testid="preceding" style={{ height: 200 }} />
-      {firstVisible && <StickyContainer positionStrategy="fixed" data-testid="first-container">
+      {firstVisible && <StickyContainer data-testid="first-container">
         <StickyItem data-testid="first"><div style={{ height: 40 }}>First</div></StickyItem>
         <div style={{ height: 1000 }} />
       </StickyContainer>}
-      <StickyContainer positionStrategy="fixed" data-testid="remaining-container">
+      <StickyContainer data-testid="remaining-container">
         <StickyItem data-testid="remaining"><div style={{ height: 40 }}>Remaining</div></StickyItem>
         <div style={{ height: 1000 }} />
       </StickyContainer>
@@ -24,7 +24,7 @@ function Fixture() {
   </>;
   if (kind === 'box') return <>
     <div style={{ height: 200 }} />
-    <StickyContainer positionStrategy="fixed" defaultMode="stack">
+    <StickyContainer defaultMode="stack">
       <BoxHeader />
       <div data-testid="body" style={{ height: 1000 }} />
     </StickyContainer>
@@ -34,7 +34,7 @@ function Fixture() {
     <div style={{ height: 200 }} />
     <div data-testid="scroller" style={{ overflow: 'auto', width: 400, height: 400 }}>
       <div style={{ width: 1000 }}>
-        <StickyContainer positionStrategy="fixed" defaultMode="stack">
+        <StickyContainer defaultMode="stack">
           <StickyItem data-testid="item"><div style={{ height: 40 }}>Header</div></StickyItem>
           <div style={{ height: 1000 }} />
         </StickyContainer>
@@ -44,7 +44,7 @@ function Fixture() {
   </>;
   const content = <>
     <div data-testid="preceding" style={{ height: 200 }} />
-    <StickyContainer positionStrategy="fixed" data-testid="container" defaultMode={query.has('replace') ? 'replace' : 'stack'}>
+    <StickyContainer data-testid="container" defaultMode={query.has('replace') ? 'replace' : 'stack'}>
       {Array.from({ length: Number(query.get('count') ?? 1) }, (_, index) => <React.Fragment key={index}>
         <StickyItem data-testid={index === 0 ? 'item' : undefined}><div style={{ height: 40 }}>Header {index}</div></StickyItem>
         {query.has('spaced') && <div style={{ height: 200 }} />}
