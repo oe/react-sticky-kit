@@ -17,6 +17,7 @@ export interface IStickyItemHandle {
   el: HTMLElement;
   content: HTMLElement;
   canNative: boolean;
+  prepareFixed: () => void;
   applyNative: (top: number, zIndex: number) => void;
   mode: Exclude<IStickyMode, 'none'>;
   measure: (rect: DOMRect) => IStickyItemMeasurement;

@@ -54,7 +54,7 @@ export function StickyContainer({ children, offsetTop = 0, offsetBottom = 0, ove
   const itemsRef = useRef(new Set<IStickyItemHandle>());
   const measurementsRef = useRef<{ item: IStickyItemHandle; rect: DOMRect }[] | null>(null);
   const handlesRef = useRef(new Map<Element, IStickyItemHandle>());
-  const stickyRef = useRef(false);
+  const stickyRef = useRef<boolean | IStickyItemHandle>(false);
   const nativeEligibleRef = useRef<boolean | null>(null);
   const updatesRef = useRef<ReturnType<typeof subscribeUpdates> | null>(null);
   const observationsRef = useRef(new Map<Element, () => void>());
@@ -84,7 +84,7 @@ export function StickyContainer({ children, offsetTop = 0, offsetBottom = 0, ove
         return () => {
           updatesRef.current?.setScrollEnabled(Boolean(options.onStickyItemsHeightChange));
           overflowRef.current = null;
-          stickyRef.current = true;
+          stickyRef.current = single;
           container.classList.remove('can-sticky');
           single.applyNative(options.offsetTop, options.baseZIndex);
           if (heightRef.current !== total) {
@@ -110,6 +110,10 @@ export function StickyContainer({ children, offsetTop = 0, offsetBottom = 0, ove
         return () => options.onStickyItemsHeightChange?.(0);
       }
     };
+
+    // Native positioning changes the wrapper rectangle. Restore flow geometry once
+    // before sorting a fixed group; fixed plans are applied in the same frame.
+    if (typeof stickyRef.current !== 'boolean') stickyRef.current.prepareFixed();
 
     // Reuse storage, not geometry: rectangles and visual order stay fresh each frame.
     let measurements = measurementsRef.current;

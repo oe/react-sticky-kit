@@ -20,7 +20,7 @@ function Fixture() {
       offsetTop={20} offsetBottom={30} positionStrategy={automatic ? 'auto' : 'fixed'}
       style={query.has('stretch') ? { display: 'flex', height: 1800 } : undefined}
       overflowBehavior={query.has('pin') ? 'pin' : 'scroll'} baseZIndex={400}>
-      <StickyItem data-testid="a" style={inlineTop !== undefined ? { top: inlineTop } : query.has('inline') ? { top: 0, zIndex: 0 } : undefined}><div style={{ height, background: '#daeaea' }}>First content</div></StickyItem>
+      <StickyItem data-testid="a" style={inlineTop !== undefined ? { top: inlineTop } : query.has('inline') ? { top: 0, zIndex: 0 } : undefined}><div style={{ height, background: '#daeaea' }}>First content<input aria-label="Preserved input" defaultValue="initial" /></div></StickyItem>
       <div style={{ height: 300 }} />
       {multiple && <StickyItem data-testid="b"><div style={{ height: 400, background: '#eaeada' }}>Second content</div></StickyItem>}
       <div style={{ height: 1800 }} />

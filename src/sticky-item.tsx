@@ -31,13 +31,16 @@ export function StickyItem({ mode, children, className, ...rest }: IStickyItemPr
     let nativeTop: number | null = null;
     let nativeZIndex: number;
     let previousLayout: Parameters<IStickyItemHandle['apply']>[0] = null;
-    const reset = () => {
+    const prepareFixed = () => {
       if (nativeTop !== null) {
         nativeTop = null;
         wrapper.classList.remove('is-native-sticky');
         wrapper.style.removeProperty('--oe-sticky-top');
         wrapper.style.removeProperty('--oe-sticky-z');
       }
+    };
+    const reset = () => {
+      prepareFixed();
       if (!sticky) return;
       sticky = false;
       previousLayout = null;
@@ -82,7 +85,7 @@ export function StickyItem({ mode, children, className, ...rest }: IStickyItemPr
       wrapper.style.setProperty('--oe-sticky-z', String(zIndex));
       wrapper.classList.add('is-native-sticky');
     };
-    const handle: IStickyItemHandle = { canNative: false, applyNative, el: wrapper, content, mode: effectiveMode, apply, measure, invalidate: () => { box = null; previousLayout = null; } };
+    const handle: IStickyItemHandle = { canNative: false, prepareFixed, applyNative, el: wrapper, content, mode: effectiveMode, apply, measure, invalidate: () => { box = null; previousLayout = null; } };
     measurementRef.current = handle;
     const unregister = register(handle);
     return () => {

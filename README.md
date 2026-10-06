@@ -228,6 +228,18 @@ Open [http://localhost:5173](http://localhost:5173) and switch between demo page
 * [Dynamic offsetTop](http://localhost:5173/#dynamic-offset) dynamic offsetTop that adapts to header height changes
 * [Constraint Demo](http://localhost:5173/#constraint) demo showing different constraint options
 
+## Native positioning and bundle size
+
+Use the existing entry and set `positionStrategy="auto"` to opt into native
+sticky for eligible layouts. All modes, offsets, boundaries, long-content
+scrolling and callbacks remain available through synchronous fixed fallback.
+Switching strategies retains child state.
+
+Native positioning reduces JavaScript work during scrolling; it does not remove
+fixed code from the download. The single entry includes both implementations,
+so fallback has no additional chunk request or cold-loading delay. Bundlers cannot
+infer browser CSS support or eliminate the backend from a runtime JSX prop.
+
 ## Browser support and fallbacks
 
 **Native `position: sticky` is not required by the default fixed strategy.**
